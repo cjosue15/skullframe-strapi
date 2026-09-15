@@ -12,20 +12,18 @@ export function AboutSection() {
         <span className='translate-y-1/4'>+</span>
         <span className='-translate-y-1/12'>+</span>
       </div>
-      <Container className='relative z-2 grid min-h-134 grid-cols-3 py-16 lg:py-28 max-md:block max-md:min-h-146 max-md:py-17.25'>
+      <Container className='relative z-2 grid grid-cols-3 py-16 lg:py-28 max-md:block'>
         <div className='self-start'>
           <p className={kicker + ' text-muted-on-dark'}>
             <i className='block h-2 w-2 rounded-full bg-aqua' /> QUIÉNES SOMOS
           </p>
           <span className={label + ' mt-5 block text-micro text-muted-on-dark'}>DESDE LIMA, PERÚ</span>
         </div>
-        <div className='col-span-2 max-md:mt-16'>
+        <div className='col-span-2 max-md:mt-16 md:pt-6'>
           <h2 className={display + ' text-section leading-display max-md:text-6xl'}>
             Una tienda para
             <br />
-            <em className={displayItalic + ' text-aqua'}>
-              manos inquietas.
-            </em>
+            <em className={displayItalic + ' text-aqua'}>manos inquietas.</em>
           </h2>
           <p className='mt-8 mb-8 max-w-md text-base leading-normal max-md:max-w-82.5 max-md:text-sm'>
             Skullframe reúne la tecnología que nos gusta usar: piezas bien elegidas, drones que dan ganas de salir y
