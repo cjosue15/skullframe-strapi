@@ -64,19 +64,19 @@ export function Hero() {
             aria-hidden='true'
           />
           <div
-            className='absolute top-38 left-0 z-2 h-auto w-200 animate-fly-by opacity-0 drop-shadow-xl will-change-transform motion-reduce:-translate-x-12 motion-reduce:-translate-y-2 motion-reduce:-rotate-3 motion-reduce:animate-none motion-reduce:opacity-100'
+            className='absolute top-38 left-0 z-2 h-auto w-200 animate-fly-by opacity-0 drop-shadow-xl will-change-transform max-md:top-20 max-md:w-116.25 motion-reduce:-translate-x-12 motion-reduce:-translate-y-2 motion-reduce:-rotate-3 motion-reduce:animate-none motion-reduce:opacity-100'
             aria-hidden='true'
           >
             <div className='w-full animate-flight-stabilize-a will-change-transform motion-reduce:animate-none'>
-              <Image className='block h-auto w-full' src='/dron.png' alt='' width={960} height={447} priority />
+              <Image className='block h-auto w-full' src='/dron.png' alt='' width={960} height={447} sizes='(max-width: 767px) 465px, 800px' priority />
             </div>
           </div>
           <div
-            className='absolute top-38 left-0 z-2 h-auto w-200 animate-fly-by-delayed opacity-0 drop-shadow-xl will-change-transform motion-reduce:hidden'
+            className='absolute top-38 left-0 z-2 h-auto w-200 animate-fly-by-delayed opacity-0 drop-shadow-xl will-change-transform max-md:top-20 max-md:w-116.25 motion-reduce:hidden'
             aria-hidden='true'
           >
             <div className='w-full animate-flight-stabilize-b will-change-transform motion-reduce:animate-none'>
-              <Image className='block h-auto w-full' src='/dron.png' alt='' width={960} height={447} priority />
+              <Image className='block h-auto w-full' src='/dron.png' alt='' width={960} height={447} sizes='(max-width: 767px) 465px, 800px' priority />
             </div>
           </div>
         </div>
