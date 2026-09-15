@@ -1,5 +1,8 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import { Container } from './container';
 import { display, label } from './ui';
 
@@ -10,8 +13,49 @@ const navigation = [
 ];
 
 export function SiteHeader() {
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const animationFrame = useRef<number | null>(null);
+
+  useEffect(() => {
+    lastScrollY.current = window.scrollY;
+
+    const updateHeader = () => {
+      const currentScrollY = window.scrollY;
+      const scrollDifference = currentScrollY - lastScrollY.current;
+
+      if (currentScrollY <= 24) {
+        setIsVisible(true);
+        lastScrollY.current = currentScrollY;
+      } else if (Math.abs(scrollDifference) >= 8) {
+        setIsVisible(scrollDifference < 0);
+        lastScrollY.current = currentScrollY;
+      }
+
+      animationFrame.current = null;
+    };
+
+    const handleScroll = () => {
+      if (animationFrame.current === null) {
+        animationFrame.current = window.requestAnimationFrame(updateHeader);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (animationFrame.current !== null) window.cancelAnimationFrame(animationFrame.current);
+    };
+  }, []);
+
   return (
-    <header className='relative z-10 border-b border-line bg-paper/93'>
+    <header
+      className={
+        'sticky top-0 z-20 border-b border-line bg-paper/93 transition-transform duration-300 ease-out will-change-transform motion-reduce:translate-y-0 motion-reduce:transition-none ' +
+        (isVisible ? 'translate-y-0' : '-translate-y-full')
+      }
+    >
       <Container className='flex h-19 items-center justify-between max-md:h-16.5'>
         <Link
           className={'flex items-center gap-2.25 text-lg ' + display + ' max-md:text-base'}
@@ -42,7 +86,7 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
-        <Link className={label + ' flex items-center gap-1.5 uppercase'} href='/tienda'>
+        <Link className={label + ' flex items-center gap-1.5 uppercase'} href='/carrito'>
           BOLSA{' '}
           <sup className='flex size-4 items-center justify-center rounded-full bg-blue text-nano text-white'>0</sup>
         </Link>
