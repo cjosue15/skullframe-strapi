@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { Minus, Plus } from 'lucide-react';
 import { useBagStore } from '../stores/use-bag-store';
 import { Breadcrumbs } from './breadcrumbs';
 import { Container } from './container';
@@ -76,7 +77,7 @@ export function CartPage() {
                               aria-label={'Reducir cantidad de ' + product.title}
                               onClick={() => updateQuantity(product.slug, product.quantity - 1)}
                             >
-                              −
+                              <Minus aria-hidden='true' className='size-3.5' strokeWidth={1.75} />
                             </button>
                             <span className='grid size-7 place-content-center border-x border-line'>{product.quantity}</span>
                             <button
@@ -85,7 +86,7 @@ export function CartPage() {
                               aria-label={'Aumentar cantidad de ' + product.title}
                               onClick={() => updateQuantity(product.slug, product.quantity + 1)}
                             >
-                              +
+                              <Plus aria-hidden='true' className='size-3.5' strokeWidth={1.75} />
                             </button>
                           </div>
                           <button

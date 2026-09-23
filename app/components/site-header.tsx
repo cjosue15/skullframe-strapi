@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { Menu, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useBagStore } from '../stores/use-bag-store';
@@ -120,20 +121,11 @@ export function SiteHeader() {
               aria-label={isMenuOpen ? 'Cerrar navegación' : 'Abrir navegación'}
               onClick={() => setIsMenuOpen((isOpen) => !isOpen)}
             >
-              <span className='relative block size-5' aria-hidden='true'>
-                {isMenuOpen ? (
-                  <>
-                    <span className='absolute top-1/2 left-0 h-px w-5 -translate-y-1/2 rotate-45 bg-ink' />
-                    <span className='absolute top-1/2 left-0 h-px w-5 -translate-y-1/2 -rotate-45 bg-ink' />
-                  </>
-                ) : (
-                  <>
-                    <span className='absolute top-1 left-0 h-px w-5 bg-ink' />
-                    <span className='absolute top-1/2 left-0 h-px w-5 -translate-y-1/2 bg-ink' />
-                    <span className='absolute bottom-1 left-0 h-px w-5 bg-ink' />
-                  </>
-                )}
-              </span>
+              {isMenuOpen ? (
+                <X aria-hidden='true' className='size-5' strokeWidth={1.75} />
+              ) : (
+                <Menu aria-hidden='true' className='size-5' strokeWidth={1.75} />
+              )}
             </button>
           </div>
         </Container>
@@ -173,10 +165,7 @@ export function SiteHeader() {
                       aria-label='Cerrar navegación'
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      <span className='relative block size-5' aria-hidden='true'>
-                        <span className='absolute top-1/2 left-0 h-px w-5 -translate-y-1/2 rotate-45 bg-ink' />
-                        <span className='absolute top-1/2 left-0 h-px w-5 -translate-y-1/2 -rotate-45 bg-ink' />
-                      </span>
+                      <X aria-hidden='true' className='size-5' strokeWidth={1.75} />
                     </button>
                   </div>
                 </Container>

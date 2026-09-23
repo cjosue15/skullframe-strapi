@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react';
 import { Arrow, display, displayItalic, kicker, label, textLink } from './ui';
 import { Container } from './container';
 
@@ -5,12 +6,12 @@ export function AboutSection() {
   return (
     <section className='relative overflow-hidden bg-ink text-paper' id='nosotros'>
       <div
-        className='pointer-events-none absolute -top-9 -right-15 flex gap-12 font-display text-plus leading-none font-thin text-aqua/13'
+        className='pointer-events-none absolute -top-9 -right-15 flex gap-12 text-aqua/13'
         aria-hidden='true'
       >
-        <span>+</span>
-        <span className='translate-y-1/4'>+</span>
-        <span className='-translate-y-1/12'>+</span>
+        <Plus className='size-80 shrink-0 lg:size-120' strokeWidth={0.7} />
+        <Plus className='size-80 shrink-0 translate-y-1/4 lg:size-120' strokeWidth={0.7} />
+        <Plus className='size-80 shrink-0 -translate-y-1/12 lg:size-120' strokeWidth={0.7} />
       </div>
       <Container className='relative z-2 grid grid-cols-3 py-16 lg:py-28 max-md:block'>
         <div className='self-start'>

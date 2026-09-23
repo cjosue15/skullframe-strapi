@@ -1,5 +1,6 @@
 'use client';
 
+import { Check, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useBagStore } from '../stores/use-bag-store';
 import type { Product } from '../interfaces/store';
@@ -20,7 +21,11 @@ export function AddToBagButton({ product }: { product: Product }) {
       aria-label={wasAdded ? product.title + ' añadido a la bolsa' : 'Añadir ' + product.title + ' a la bolsa'}
       onClick={handleAdd}
     >
-      <span aria-hidden='true'>{wasAdded ? '✓' : '+'}</span>
+      {wasAdded ? (
+        <Check aria-hidden='true' className='size-5' strokeWidth={1.75} />
+      ) : (
+        <Plus aria-hidden='true' className='size-5' strokeWidth={1.75} />
+      )}
     </button>
   );
 }

@@ -7,9 +7,6 @@ export const textLink =
   ' inline-flex items-center gap-5 border-b border-ink pb-2 transition-colors hover:border-blue hover:text-blue';
 
 export function Arrow() {
-  return (
-    <span aria-hidden='true' className='text-arrow leading-none'>
-      ↗
-    </span>
-  );
+  return <ArrowUpRight aria-hidden='true' className='size-4.5 shrink-0' strokeWidth={1.5} />;
 }
+import { ArrowUpRight } from 'lucide-react';
