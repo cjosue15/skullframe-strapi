@@ -23,7 +23,7 @@ export function ProductsSection({ products }: { products: Product[] }) {
             VER TODO <Arrow />
           </Link>
         </div>
-        <div className='grid grid-cols-3 gap-6 lg:gap-9 max-md:grid-cols-1 max-md:gap-11'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-9 max-md:grid-cols-1 max-md:gap-11'>
           {products.map((product) => (
             <ShopProductCard key={product.slug} product={product} />
           ))}

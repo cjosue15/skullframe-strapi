@@ -62,7 +62,7 @@ export function ShopCatalog({ products, categories }: { products: Product[]; cat
           {/* <p className={label + ' text-micro text-muted max-md:mt-6'}>{visibleProducts.length} OBJETOS DISPONIBLES</p> */}
         </div>
         <div
-          className='grid grid-cols-3 gap-x-9 gap-y-18 pb-20 max-md:grid-cols-1 max-md:gap-y-12 md:pb-32'
+          className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-9 gap-y-18 pb-20 max-md:gap-y-12 md:pb-32'
           id='catalogo'
         >
           {products.map((product) => (
