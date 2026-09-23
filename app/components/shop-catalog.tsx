@@ -1,16 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { products } from '../data/products';
 import { Container } from './container';
 import { ShopProductCard } from './shop-product-card';
 import { display, displayItalic, kicker, label } from './ui';
+import { Product } from '../interfaces/store';
+import { Category } from '../interfaces/category';
 
-const filters = ['TODO', 'DRONES', 'ARDUINO', 'FPV', 'RECURSOS'];
-
-export function ShopCatalog() {
-  const [activeFilter, setActiveFilter] = useState('TODO');
-  const visibleProducts = activeFilter === 'TODO' ? products : products.filter((product) => product.category === activeFilter);
+export function ShopCatalog({ products, categories }: { products: Product[]; categories: Category[] }) {
+  const [activeFilter, setActiveFilter] = useState<number | null>(null);
+  // const visibleProducts = activeFilter === 'TODO' ? products : products.filter((product) => product.category === activeFilter);
 
   return (
     <section className='min-h-screen bg-paper' aria-labelledby='shop-title'>
@@ -21,7 +20,8 @@ export function ShopCatalog() {
           </p>
           <div className='mt-7 flex items-end justify-between gap-8 max-md:block'>
             <h1 className={display + ' text-hero leading-display'} id='shop-title'>
-              La tienda para<br />
+              La tienda para
+              <br />
               <em className={displayItalic + ' text-blue'}>seguir haciendo.</em>
             </h1>
             <p className='max-w-72 text-base leading-copy text-muted'>
@@ -31,22 +31,44 @@ export function ShopCatalog() {
         </div>
         <div className='flex items-center justify-between gap-6 py-7 max-md:block'>
           <nav className='flex flex-wrap gap-x-7 gap-y-4' aria-label='Filtrar catálogo'>
-            {filters.map((filter) => (
+            <button
+              className={
+                label +
+                ' cursor-pointer text-muted transition-colors hover:text-blue ' +
+                (activeFilter === null ? 'text-ink' : '')
+              }
+              type='button'
+              aria-pressed={activeFilter === null}
+              onClick={() => setActiveFilter(null)}
+            >
+              TODO
+            </button>
+            {categories.map((category) => (
               <button
-                className={label + ' cursor-pointer text-muted transition-colors hover:text-blue ' + (activeFilter === filter ? 'text-ink' : '')}
+                className={
+                  label +
+                  ' cursor-pointer text-muted transition-colors hover:text-blue ' +
+                  (activeFilter === category.id ? 'text-ink' : '')
+                }
                 type='button'
-                aria-pressed={activeFilter === filter}
-                onClick={() => setActiveFilter(filter)}
-                key={filter}
+                aria-pressed={activeFilter === category.id}
+                onClick={() => setActiveFilter(category.id)}
+                key={category.id}
               >
-                {filter}
+                {category.name.toUpperCase()}
               </button>
             ))}
           </nav>
-          <p className={label + ' text-micro text-muted max-md:mt-6'}>{visibleProducts.length} OBJETOS DISPONIBLES</p>
+          {/* <p className={label + ' text-micro text-muted max-md:mt-6'}>{visibleProducts.length} OBJETOS DISPONIBLES</p> */}
         </div>
-        <div className='grid grid-cols-3 gap-x-9 gap-y-18 pb-20 max-md:grid-cols-1 max-md:gap-y-12 md:pb-32' id='catalogo'>
-          {visibleProducts.map((product) => <ShopProductCard key={product.slug} product={product} />)}
+        <div
+          className='grid grid-cols-3 gap-x-9 gap-y-18 pb-20 max-md:grid-cols-1 max-md:gap-y-12 md:pb-32'
+          id='catalogo'
+        >
+          {products.map((product) => (
+            <ShopProductCard key={product.slug} product={product} />
+          ))}
+          {/* {visibleProducts.map((product) => <ShopProductCard key={product.slug} product={product} />)} */}
         </div>
       </Container>
     </section>
