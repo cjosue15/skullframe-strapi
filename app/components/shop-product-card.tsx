@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AddToBagButton } from './add-to-bag-button';
 import { ProductVisual } from './product-visual';
 import { Arrow, display, label } from './ui';
 import { Product } from '../interfaces/store';
@@ -8,9 +9,12 @@ export function ShopProductCard({ product }: { product: Product }) {
 
   return (
     <article className='group min-w-0'>
-      <Link className='block overflow-hidden' href={'/tienda/' + product.slug}>
-        <ProductVisual product={product} />
-      </Link>
+      <div className='relative overflow-hidden'>
+        <Link className='block' href={'/tienda/' + product.slug}>
+          <ProductVisual product={product} />
+        </Link>
+        <AddToBagButton product={product} />
+      </div>
       <div className='mt-5 flex items-start justify-between gap-5'>
         <div>
           <p className={label + ' mb-3 text-micro text-muted'}>

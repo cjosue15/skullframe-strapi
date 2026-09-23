@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useBagStore } from '../stores/use-bag-store';
 import { Container } from './container';
 import { display, label } from './ui';
 
@@ -14,6 +15,7 @@ const navigation = [
 ];
 
 export function SiteHeader() {
+  const itemCount = useBagStore((state) => state.items.reduce((total, item) => total + item.quantity, 0));
   const [isVisible, setIsVisible] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
@@ -108,7 +110,7 @@ export function SiteHeader() {
           <div className='flex items-center gap-4'>
             <Link className={label + ' flex items-center gap-1.5 uppercase'} href='/carrito' onClick={() => setIsMenuOpen(false)}>
               BOLSA{' '}
-              <sup className='flex size-4 items-center justify-center rounded-full bg-blue text-nano text-white'>0</sup>
+              <sup className='flex size-4 items-center justify-center rounded-full bg-blue text-nano text-white'>{itemCount}</sup>
             </Link>
             <button
               className='hidden size-11 cursor-pointer place-items-center text-ink max-md:grid'
@@ -163,7 +165,7 @@ export function SiteHeader() {
                       onClick={() => setIsMenuOpen(false)}
                     >
                       BOLSA{' '}
-                      <sup className='flex size-4 items-center justify-center rounded-full bg-blue text-nano text-white'>0</sup>
+                      <sup className='flex size-4 items-center justify-center rounded-full bg-blue text-nano text-white'>{itemCount}</sup>
                     </Link>
                     <button
                       className='grid size-11 cursor-pointer place-items-center text-ink'

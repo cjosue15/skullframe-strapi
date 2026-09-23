@@ -1,43 +1,19 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
-import { products } from '../data/products';
+import { useBagStore } from '../stores/use-bag-store';
 import { Breadcrumbs } from './breadcrumbs';
 import { Container } from './container';
 import { Arrow, display, label, textLink } from './ui';
 
-const cartItems = [
-  { product: products[0], quantity: 1 },
-  { product: products[2], quantity: 1 },
-];
-
-function CartPreview({ itemIndex }: { itemIndex: number }) {
-  const product = cartItems[itemIndex].product;
-
-  if (product.image) {
-    return (
-      <div className='flex aspect-square w-28 shrink-0 items-center justify-center bg-card-drone max-md:w-24'>
-        <Image
-          className='w-full drop-shadow-lg'
-          src={product.image}
-          alt={product.imageAlt ?? product.name}
-          width={240}
-          height={160}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className='flex aspect-square w-28 shrink-0 items-center justify-center bg-blue max-md:w-24'
-      aria-hidden='true'
-    >
-      <span className={display + ' -rotate-6 bg-aqua px-3 py-4 text-3xl text-ink'}>.PDF</span>
-    </div>
-  );
-}
-
 export function CartPage() {
+  const items = useBagStore((state) => state.items);
+  const removeItem = useBagStore((state) => state.removeItem);
+  const updateQuantity = useBagStore((state) => state.updateQuantity);
+  const itemCount = items.reduce((total, item) => total + item.quantity, 0);
+  const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
+
   return (
     <main className='bg-paper pb-20 md:pb-32'>
       <Container>
@@ -47,7 +23,7 @@ export function CartPage() {
           <div className='flex items-end justify-between gap-6 max-md:items-start'>
             <div>
               <p className={label + ' flex items-center gap-2 text-micro text-muted'}>
-                <i className='block size-2 rounded-full bg-blue' /> PEDIDO / 02
+                <i className='block size-2 rounded-full bg-blue' /> PEDIDO / {itemCount.toString().padStart(2, '0')}
               </p>
               <h1 className={display + ' mt-5 text-section leading-display'}>Tu bolsa</h1>
             </div>
@@ -62,63 +38,79 @@ export function CartPage() {
                 className={label + ' flex justify-between border-b border-line pb-4 text-micro text-muted'}
                 id='cart-items-title'
               >
-                <span>OBJETOS SELECCIONADOS</span>
+                <span>OBJETOS SELECCIONADOS / {itemCount}</span>
                 <span>SUBTOTAL</span>
               </h2>
-              <ul>
-                {cartItems.map(({ product, quantity }, index) => (
-                  <li className='flex gap-6 border-b border-line py-6 max-md:gap-4' key={product.slug}>
-                    <CartPreview itemIndex={index} />
-                    <div className='flex min-w-0 flex-1 flex-col justify-between py-0.5'>
-                      <div className='flex items-start justify-between gap-5'>
-                        <div>
-                          <p className={label + ' text-micro text-muted'}>
-                            {product.kind} · {product.category}
-                          </p>
-                          <Link
-                            className={display + ' mt-2 block text-product leading-product hover:text-blue'}
-                            href={'/tienda/' + product.slug}
-                          >
-                            {product.name}
-                          </Link>
-                        </div>
-                        <strong className={display + ' shrink-0 text-xl leading-none'}>{product.price}</strong>
+              {items.length ? (
+                <ul>
+                  {items.map((product) => (
+                    <li className='flex gap-6 border-b border-line py-6 max-md:gap-4' key={product.slug}>
+                      <div className='relative aspect-square w-28 shrink-0 overflow-hidden bg-card-component max-md:w-24'>
+                        <Image className='object-cover' src={product.cover} alt={product.title} fill sizes='112px' />
                       </div>
-                      <div className='mt-5 flex items-center justify-between gap-4'>
-                        <div
-                          className={label + ' inline-flex items-center border border-line text-micro'}
-                          aria-label={'Cantidad de ' + product.name}
-                        >
-                          <button
-                            className='flex size-7 cursor-pointer items-center justify-center text-muted transition-colors hover:bg-soft-blue hover:text-ink'
-                            type='button'
-                            aria-label={'Reducir cantidad de ' + product.name}
+                      <div className='flex min-w-0 flex-1 flex-col justify-between py-0.5'>
+                        <div className='flex items-start justify-between gap-5'>
+                          <div>
+                            <p className={label + ' text-micro text-muted'}>
+                              {product.type === 'DIGITAL' ? 'DESCARGABLE' : 'FÍSICO'} · {product.category}
+                            </p>
+                            <Link
+                              className={display + ' mt-2 block text-product leading-product hover:text-blue'}
+                              href={'/tienda/' + product.slug}
+                            >
+                              {product.title}
+                            </Link>
+                          </div>
+                          <strong className={display + ' shrink-0 text-xl leading-none'}>
+                            S/ {product.price * product.quantity}
+                          </strong>
+                        </div>
+                        <div className='mt-5 flex items-center justify-between gap-4'>
+                          <div
+                            className={label + ' inline-flex items-center border border-line text-micro'}
+                            aria-label={'Cantidad de ' + product.title}
                           >
-                            −
-                          </button>
-                          <span className='grid size-7 place-content-center border-x border-line'>{quantity}</span>
+                            <button
+                              className='flex size-7 cursor-pointer items-center justify-center text-muted transition-colors hover:bg-soft-blue hover:text-ink'
+                              type='button'
+                              aria-label={'Reducir cantidad de ' + product.title}
+                              onClick={() => updateQuantity(product.slug, product.quantity - 1)}
+                            >
+                              −
+                            </button>
+                            <span className='grid size-7 place-content-center border-x border-line'>{product.quantity}</span>
+                            <button
+                              className='flex size-7 cursor-pointer items-center justify-center text-muted transition-colors hover:bg-soft-blue hover:text-ink'
+                              type='button'
+                              aria-label={'Aumentar cantidad de ' + product.title}
+                              onClick={() => updateQuantity(product.slug, product.quantity + 1)}
+                            >
+                              +
+                            </button>
+                          </div>
                           <button
-                            className='flex size-7 cursor-pointer items-center justify-center text-muted transition-colors hover:bg-soft-blue hover:text-ink'
+                            className={
+                              label +
+                              ' cursor-pointer text-micro text-muted underline decoration-line underline-offset-3 transition-colors hover:text-blue'
+                            }
                             type='button'
-                            aria-label={'Aumentar cantidad de ' + product.name}
+                            onClick={() => removeItem(product.slug)}
                           >
-                            +
+                            QUITAR
                           </button>
                         </div>
-                        <button
-                          className={
-                            label +
-                            ' cursor-pointer text-micro text-muted underline decoration-line underline-offset-3 transition-colors hover:text-blue'
-                          }
-                          type='button'
-                        >
-                          QUITAR
-                        </button>
                       </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className='border-b border-line py-12'>
+                  <p className='max-w-sm text-lg leading-copy text-muted'>Aún no tienes objetos en la bolsa.</p>
+                  <Link className={textLink + ' mt-7'} href='/tienda'>
+                    EXPLORAR PRODUCTOS <Arrow />
+                  </Link>
+                </div>
+              )}
               <Link className={textLink + ' mt-7 max-md:inline-flex'} href='/tienda'>
                 SEGUIR EXPLORANDO <Arrow />
               </Link>
@@ -137,7 +129,7 @@ export function CartPage() {
               <dl className={label + ' mt-10 space-y-4 border-y border-paper/20 py-5 text-micro'}>
                 <div className='flex justify-between gap-6'>
                   <dt className='text-muted-on-dark'>SUBTOTAL</dt>
-                  <dd>S/ 3,509</dd>
+                  <dd>S/ {subtotal}</dd>
                 </div>
                 <div className='flex justify-between gap-6'>
                   <dt className='text-muted-on-dark'>ENVÍO</dt>
@@ -146,7 +138,7 @@ export function CartPage() {
               </dl>
               <div className='mt-6 flex items-end justify-between gap-5'>
                 <span className={label + ' text-micro text-muted-on-dark'}>TOTAL</span>
-                <strong className={display + ' text-4xl leading-none'}>S/ 3,509</strong>
+                <strong className={display + ' text-4xl leading-none'}>S/ {subtotal}</strong>
               </div>
               <button
                 className={
