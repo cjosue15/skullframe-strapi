@@ -15,7 +15,7 @@ export async function getStoreInfo(): Promise<Product[]> {
     title: item.title,
     description: item.description,
     price: item.price,
-    image: item.images.map((img) => `${STRAPI_HOST}${img.url}`),
+    images: item.images.map((img) => `${STRAPI_HOST}${img.url}`),
     shortDescription: item.shortDescription,
     type: item.type,
     category: item.category.name.toUpperCase(),

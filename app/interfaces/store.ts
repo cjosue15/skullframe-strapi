@@ -1,10 +1,13 @@
+import type { BlocksContent } from '@strapi/blocks-react-renderer';
+
+export type ProductDescription = BlocksContent | null;
 export interface Product {
   id: number;
   slug: string;
   title: string;
-  description: unknown[];
+  description: ProductDescription;
   price: number;
-  image: string[];
+  images: string[];
   shortDescription: string;
   type: 'FISICO' | 'DIGITAL';
   category: string;
@@ -16,7 +19,7 @@ export interface ProductStrapiResponse {
   title: string;
   price: number;
   slug: string;
-  description: unknown[];
+  description: ProductDescription;
   images: { url: string }[];
   shortDescription: string;
   type: 'FISICO' | 'DIGITAL';

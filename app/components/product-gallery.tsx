@@ -2,29 +2,18 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import type { Product } from '../data/products';
-import { display } from './ui';
+import { Product } from '../interfaces/store';
 
-const photoLabels = ['FOTO 01', 'FOTO 02', 'FOTO 03', 'FOTO 04'];
-
-function GalleryImage({ product, isThumbnail = false }: { product: Product; isThumbnail?: boolean }) {
-  if (product.image) {
-    return (
-      <Image
-        className={isThumbnail ? 'size-full object-contain' : 'max-h-137 w-full object-contain'}
-        src={product.image}
-        alt={isThumbnail ? '' : (product.imageAlt ?? product.name)}
-        width={960}
-        height={447}
-        priority={!isThumbnail}
-      />
-    );
-  }
-
+function GalleryImage({ title, image, isThumbnail = false }: { title: string; image: string; isThumbnail?: boolean }) {
   return (
-    <span className={display + ' text-ink ' + (isThumbnail ? 'text-xl' : 'text-zip')} aria-hidden='true'>
-      {product.kind === 'DIGITAL' ? '.PDF' : product.name}
-    </span>
+    <Image
+      className={isThumbnail ? 'size-full object-contain' : 'max-h-137 w-full object-contain'}
+      src={image}
+      alt={isThumbnail ? '' : title}
+      width={960}
+      height={447}
+      priority={!isThumbnail}
+    />
   );
 }
 
@@ -32,12 +21,12 @@ export function ProductGallery({ product }: { product: Product }) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   return (
-    <section aria-label={'Galería de ' + product.name}>
+    <section aria-label={'Galería de ' + product.title}>
       <figure className='relative flex items-center justify-center overflow-hidden border border-line'>
-        <GalleryImage product={product} />
+        <GalleryImage title={product.title} image={product.images[selectedIndex]} />
       </figure>
       <div className='mt-3 grid grid-cols-4 gap-3' aria-label='Seleccionar imagen del producto'>
-        {photoLabels.map((photoLabel, index) => (
+        {product.images.map((image, index) => (
           <button
             className={
               'relative flex aspect-square cursor-pointer items-center justify-center overflow-hidden border transition-colors ' +
@@ -45,11 +34,11 @@ export function ProductGallery({ product }: { product: Product }) {
             }
             type='button'
             aria-pressed={selectedIndex === index}
-            aria-label={'Mostrar ' + photoLabel.toLowerCase()}
+            aria-label={'Mostrar imagen ' + (index + 1)}
             onClick={() => setSelectedIndex(index)}
-            key={photoLabel}
+            key={index}
           >
-            <GalleryImage product={product} isThumbnail />
+            <GalleryImage title={product.title} image={image} isThumbnail />
           </button>
         ))}
       </div>

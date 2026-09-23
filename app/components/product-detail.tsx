@@ -1,10 +1,13 @@
-import type { Product } from '../data/products';
+import { Product } from '../interfaces/store';
 import { Breadcrumbs } from './breadcrumbs';
 import { Container } from './container';
+import { ProductDescription } from './product-description';
 import { ProductGallery } from './product-gallery';
 import { Arrow, display, label } from './ui';
 
 export function ProductDetail({ product }: { product: Product }) {
+  const isDigitalLabel = product.type === 'DIGITAL' ? 'DIGITAL' : 'FÍSICO';
+
   return (
     <main className='bg-paper pb-20 md:pb-32'>
       <Container>
@@ -12,21 +15,22 @@ export function ProductDetail({ product }: { product: Product }) {
           items={[
             { label: 'INICIO', href: '/' },
             { label: 'TIENDA', href: '/tienda' },
-            { label: product.name.toUpperCase() },
+            { label: product.title.toUpperCase() },
           ]}
         />
         <div className='grid border-t border-line pt-8 md:grid-cols-2 md:gap-12 md:pt-12'>
           <ProductGallery product={product} />
           <div className='max-w-120 self-start max-md:mt-10 lg:sticky lg:top-25'>
             <p className={label + ' flex items-center gap-2 text-micro text-muted'}>
-              <i className='block size-2 rounded-full bg-blue' /> {product.kind} · {product.category}
+              <i className='block size-2 rounded-full bg-blue' /> {isDigitalLabel} · {product.category}
             </p>
-            <h1 className={display + ' mt-7 text-hero leading-hero'}>{product.name}</h1>
-            <p className='mt-7 max-w-lg text-lg leading-copy text-muted'>{product.description}</p>
-            <p className={label + ' mt-8 text-small'}>{product.availability}</p>
+            <h1 className={display + ' mt-7 text-hero leading-hero'}>{product.title}</h1>
+            {product.description && <ProductDescription content={product.description} />}
+
+            {/* <p className={label + ' mt-8 text-small'}>{product.availability}</p> */}
             <div className='mt-5 flex items-end justify-between border-y border-line py-5'>
               <span className={label + ' text-micro text-muted'}>PRECIO</span>
-              <strong className={display + ' text-4xl leading-none'}>{product.price}</strong>
+              <strong className={display + ' text-4xl leading-none'}>S/ {product.price}</strong>
             </div>
             <button
               className={
@@ -37,14 +41,6 @@ export function ProductDetail({ product }: { product: Product }) {
             >
               AÑADIR A LA BOLSA <Arrow />
             </button>
-            <ul className='mt-9 border-t border-line pt-6'>
-              {product.details.map((detail, index) => (
-                <li className={label + ' flex gap-4 border-b border-line py-3.5'} key={detail}>
-                  <span className='text-blue'>0{index + 1}</span>
-                  {detail}
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       </Container>
