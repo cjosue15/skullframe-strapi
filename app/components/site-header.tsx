@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Container } from './container';
 import { display, label } from './ui';
 
@@ -14,8 +15,24 @@ const navigation = [
 
 export function SiteHeader() {
   const [isVisible, setIsVisible] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const lastScrollY = useRef(0);
   const animationFrame = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [isMenuOpen]);
 
   useEffect(() => {
     lastScrollY.current = window.scrollY;
@@ -29,6 +46,7 @@ export function SiteHeader() {
         lastScrollY.current = currentScrollY;
       } else if (Math.abs(scrollDifference) >= 8) {
         setIsVisible(scrollDifference < 0);
+        if (scrollDifference > 0) setIsMenuOpen(false);
         lastScrollY.current = currentScrollY;
       }
 
@@ -50,47 +68,135 @@ export function SiteHeader() {
   }, []);
 
   return (
-    <header
-      className={
-        'sticky top-0 z-20 border-b border-line bg-paper/93 transition-transform duration-300 ease-out will-change-transform motion-reduce:translate-y-0 motion-reduce:transition-none ' +
-        (isVisible ? 'translate-y-0' : '-translate-y-full')
-      }
-    >
-      <Container className='flex h-19 items-center justify-between max-md:h-16.5'>
-        <Link
-          className={'flex items-center gap-2.25 text-lg ' + display + ' max-md:text-base'}
-          href='/'
-          aria-label='Skullframe, inicio'
-        >
-          <Image
-            className='h-6.5 w-12 object-contain mix-blend-multiply max-md:w-10.5'
-            src='/logo.png'
-            alt='Skullframe'
-            width={1485}
-            height={394}
-            priority
-          />
-          <span>SKULLFRAME</span>
-        </Link>
-        <nav className='ml-25 flex gap-10 xl:gap-13 max-md:hidden' aria-label='Navegación principal'>
-          {navigation.map((item) => (
-            <Link
-              className={
-                label +
-                ' relative uppercase after:absolute after:-bottom-1.5 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-blue after:transition-transform after:duration-250 hover:after:scale-x-100'
-              }
-              href={item.href}
-              key={item.label}
-            >
-              {item.label}
+    <>
+      <header
+        className={
+          'sticky top-0 z-20 border-b border-line bg-paper/93 transition-transform duration-300 ease-out will-change-transform motion-reduce:translate-y-0 motion-reduce:transition-none ' +
+          (isVisible ? 'translate-y-0' : '-translate-y-full')
+        }
+      >
+        <Container className='flex h-19 items-center justify-between max-md:h-16.5'>
+          <Link
+            className={'flex items-center gap-2.25 text-lg ' + display + ' max-md:text-base'}
+            href='/'
+            aria-label='Skullframe, inicio'
+          >
+            <Image
+              className='h-6.5 w-12 object-contain mix-blend-multiply max-md:w-10.5'
+              src='/logo.png'
+              alt='Skullframe'
+              width={1485}
+              height={394}
+              priority
+            />
+            <span>SKULLFRAME</span>
+          </Link>
+          <nav className='ml-25 flex gap-10 xl:gap-13 max-md:hidden' aria-label='Navegación principal'>
+            {navigation.map((item) => (
+              <Link
+                className={
+                  label +
+                  ' relative uppercase after:absolute after:-bottom-1.5 after:left-0 after:h-px after:w-full after:origin-left after:scale-x-0 after:bg-blue after:transition-transform after:duration-250 hover:after:scale-x-100'
+                }
+                href={item.href}
+                key={item.label}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <div className='flex items-center gap-4'>
+            <Link className={label + ' flex items-center gap-1.5 uppercase'} href='/carrito' onClick={() => setIsMenuOpen(false)}>
+              BOLSA{' '}
+              <sup className='flex size-4 items-center justify-center rounded-full bg-blue text-nano text-white'>0</sup>
             </Link>
-          ))}
-        </nav>
-        <Link className={label + ' flex items-center gap-1.5 uppercase'} href='/carrito'>
-          BOLSA{' '}
-          <sup className='flex size-4 items-center justify-center rounded-full bg-blue text-nano text-white'>0</sup>
-        </Link>
-      </Container>
-    </header>
+            <button
+              className='hidden size-11 cursor-pointer place-items-center text-ink max-md:grid'
+              type='button'
+              aria-controls='mobile-navigation'
+              aria-expanded={isMenuOpen}
+              aria-label={isMenuOpen ? 'Cerrar navegación' : 'Abrir navegación'}
+              onClick={() => setIsMenuOpen((isOpen) => !isOpen)}
+            >
+              <span className='relative block size-5' aria-hidden='true'>
+                {isMenuOpen ? (
+                  <>
+                    <span className='absolute top-1/2 left-0 h-px w-5 -translate-y-1/2 rotate-45 bg-ink' />
+                    <span className='absolute top-1/2 left-0 h-px w-5 -translate-y-1/2 -rotate-45 bg-ink' />
+                  </>
+                ) : (
+                  <>
+                    <span className='absolute top-1 left-0 h-px w-5 bg-ink' />
+                    <span className='absolute top-1/2 left-0 h-px w-5 -translate-y-1/2 bg-ink' />
+                    <span className='absolute bottom-1 left-0 h-px w-5 bg-ink' />
+                  </>
+                )}
+              </span>
+            </button>
+          </div>
+        </Container>
+      </header>
+      {isMenuOpen
+        ? createPortal(
+            <div className='fixed inset-0 z-50 overflow-hidden bg-paper md:hidden' role='dialog' aria-modal='true'>
+              <div className='border-b border-line'>
+                <Container className='flex h-16.5 items-center justify-between'>
+                  <Link
+                    className={'flex items-center gap-2.25 text-base ' + display}
+                    href='/'
+                    aria-label='Skullframe, inicio'
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Image
+                      className='h-6.5 w-10.5 object-contain mix-blend-multiply'
+                      src='/logo.png'
+                      alt='Skullframe'
+                      width={1485}
+                      height={394}
+                    />
+                    <span>SKULLFRAME</span>
+                  </Link>
+                  <div className='flex items-center gap-4'>
+                    <Link
+                      className={label + ' flex items-center gap-1.5 uppercase'}
+                      href='/carrito'
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      BOLSA{' '}
+                      <sup className='flex size-4 items-center justify-center rounded-full bg-blue text-nano text-white'>0</sup>
+                    </Link>
+                    <button
+                      className='grid size-11 cursor-pointer place-items-center text-ink'
+                      type='button'
+                      aria-label='Cerrar navegación'
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <span className='relative block size-5' aria-hidden='true'>
+                        <span className='absolute top-1/2 left-0 h-px w-5 -translate-y-1/2 rotate-45 bg-ink' />
+                        <span className='absolute top-1/2 left-0 h-px w-5 -translate-y-1/2 -rotate-45 bg-ink' />
+                      </span>
+                    </button>
+                  </div>
+                </Container>
+              </div>
+              <Container className='pt-14'>
+                <nav className='grid' id='mobile-navigation' aria-label='Navegación móvil'>
+                  {navigation.map((item) => (
+                    <Link
+                      className={display + ' border-b border-line py-6 text-5xl leading-none last:border-none'}
+                      href={item.href}
+                      key={item.label}
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+              </Container>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
   );
 }
