@@ -42,15 +42,7 @@ export function Hero() {
           aria-label='Dron Mavic Pro en vuelo'
         >
           <span className={label + ' absolute top-0 right-0 z-3 text-micro max-md:right-1/6'}>01 / 01</span>
-          <span
-            className={
-              label + ' absolute bottom-1/12 left-1/16 z-3 text-micro leading-normal max-md:bottom-1/16 max-md:left-1/8'
-            }
-          >
-            MAVIC PRO
-            <br />
-            4K · 27 MIN
-          </span>
+
           <span
             className='absolute top-1/2 -left-12 z-1 h-20 w-200 -rotate-7 bg-linear-to-r from-transparent via-blue/10 to-transparent blur-2xl'
             aria-hidden='true'
@@ -68,7 +60,15 @@ export function Hero() {
             aria-hidden='true'
           >
             <div className='w-full animate-flight-stabilize-a will-change-transform motion-reduce:animate-none'>
-              <Image className='block h-auto w-full' src='/dron.png' alt='' width={960} height={447} sizes='(max-width: 767px) 465px, 800px' priority />
+              <Image
+                className='block h-auto w-full'
+                src='/dron.png'
+                alt=''
+                width={960}
+                height={447}
+                sizes='(max-width: 767px) 465px, 800px'
+                priority
+              />
             </div>
           </div>
           <div
@@ -76,7 +76,15 @@ export function Hero() {
             aria-hidden='true'
           >
             <div className='w-full animate-flight-stabilize-b will-change-transform motion-reduce:animate-none'>
-              <Image className='block h-auto w-full' src='/dron.png' alt='' width={960} height={447} sizes='(max-width: 767px) 465px, 800px' priority />
+              <Image
+                className='block h-auto w-full'
+                src='/dron.png'
+                alt=''
+                width={960}
+                height={447}
+                sizes='(max-width: 767px) 465px, 800px'
+                priority
+              />
             </div>
           </div>
         </div>
