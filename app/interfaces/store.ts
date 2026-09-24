@@ -32,3 +32,10 @@ export interface ProductStrapiResponse {
   };
   stock: number;
 }
+
+export interface ProductPagination {
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  total: number;
+}

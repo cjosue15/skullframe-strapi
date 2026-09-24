@@ -47,15 +47,26 @@ export function ProductDetail({ product }: { product: Product }) {
             </p>
 
             {hasStock && (
-              <button
-                className={
-                  label +
-                  ' my-5 inline-flex cursor-pointer items-center gap-7 bg-blue px-5 py-4 text-white transition duration-200 hover:-translate-y-0.75 hover:bg-ink'
-                }
-                type='button'
-              >
-                AGREGAR AL CARRITO <ShoppingCart aria-hidden='true' className='size-4.5 shrink-0' strokeWidth={1.5} />
-              </button>
+              <div className='my-5 flex flex-col gap-3 sm:flex-row'>
+                <button
+                  className={
+                    label +
+                    ' inline-flex cursor-pointer items-center justify-center gap-4 bg-blue px-5 py-4 text-white transition duration-200 hover:-translate-y-0.75 hover:bg-ink'
+                  }
+                  type='button'
+                >
+                  AGREGAR AL CARRITO <ShoppingCart aria-hidden='true' className='size-4.5 shrink-0' strokeWidth={1.5} />
+                </button>
+                <button
+                  className={
+                    label +
+                    ' inline-flex cursor-pointer items-center justify-center bg-ink px-5 py-4 text-paper transition duration-200 hover:-translate-y-0.75 hover:bg-aqua hover:text-ink'
+                  }
+                  type='button'
+                >
+                  COMPRAR AHORA
+                </button>
+              </div>
             )}
 
             {product.description && <ProductDescription content={product.description} />}
