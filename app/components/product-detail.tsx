@@ -31,26 +31,33 @@ export function ProductDetail({ product }: { product: Product }) {
             <p className={label + ' flex items-center gap-2 text-micro text-muted'}>
               <i className='block size-2 rounded-full bg-blue' /> {isDigitalLabel} · {product.category}
             </p>
-            <h1 className={display + ' mt-7 text-hero leading-hero'}>{product.title}</h1>
-            {product.description && <ProductDescription content={product.description} />}
+            <h1 className={display + ' mt-7 text-zip leading-none'}>{product.title}</h1>
 
-            <p className={label + ' mt-8 text-small'}>{stockLabel}</p>
-
-            <div className='mt-5 flex items-end justify-between border-y border-line py-5'>
-              <span className={label + ' text-micro text-muted'}>PRECIO</span>
-              <strong className={display + ' text-4xl leading-none'}>S/ {product.price}</strong>
+            <div className='mt-4'>
+              <strong className={display + ' text-zip leading-none tabular-nums'}>S/ {product.price}</strong>
             </div>
+
+            <p
+              className={
+                label + ` mt-4 flex items-center gap-2 text-micro ${hasStock || isDigital ? 'text-blue' : 'text-muted'}`
+              }
+            >
+              <i className='block size-1.5 rounded-full bg-current' /> {stockLabel}
+            </p>
+
             {hasStock && (
               <button
                 className={
                   label +
-                  ' mt-7 inline-flex cursor-pointer items-center gap-7 bg-blue px-5 py-4 text-white transition duration-200 hover:-translate-y-0.75 hover:bg-ink'
+                  ' my-5 inline-flex cursor-pointer items-center gap-7 bg-blue px-5 py-4 text-white transition duration-200 hover:-translate-y-0.75 hover:bg-ink'
                 }
                 type='button'
               >
                 AÑADIR A LA BOLSA <Arrow />
               </button>
             )}
+
+            {product.description && <ProductDescription content={product.description} />}
           </div>
         </div>
       </Container>
