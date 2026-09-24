@@ -5,7 +5,7 @@ const { STRAPI_HOST } = process.env;
 
 export async function getStoreInfo(): Promise<Product[]> {
   const url =
-    'productos?fields[0]=title&fields[1]=slug&fields[2]=price&fields[3]=description&fields[4]=shortDescription&fields[5]=type&populate[category][fields][0]=name&populate[images][fields][0]=url&populate[cover][fields][0]=url';
+    'productos?fields[0]=title&fields[1]=slug&fields[2]=price&fields[3]=description&fields[4]=shortDescription&fields[5]=type&fields[6]=stock&populate[category][fields][0]=name&populate[images][fields][0]=url&populate[cover][fields][0]=url';
 
   const { data } = await query<{ data: ProductStrapiResponse[] }>(url);
 
@@ -20,5 +20,6 @@ export async function getStoreInfo(): Promise<Product[]> {
     type: item.type,
     category: item.category.name.toUpperCase(),
     cover: `${STRAPI_HOST}${item.cover.url}`,
+    stock: item.stock,
   }));
 }

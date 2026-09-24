@@ -25,23 +25,25 @@ export function ProductGallery({ product }: { product: Product }) {
       <figure className='relative flex items-center justify-center overflow-hidden border border-line'>
         <GalleryImage title={product.title} image={product.images[selectedIndex]} />
       </figure>
-      <div className='mt-3 grid grid-cols-4 gap-3' aria-label='Seleccionar imagen del producto'>
-        {product.images.map((image, index) => (
-          <button
-            className={
-              'relative flex aspect-square cursor-pointer items-center justify-center overflow-hidden border transition-colors ' +
-              (selectedIndex === index ? 'border-blue' : 'border-line hover:border-ink')
-            }
-            type='button'
-            aria-pressed={selectedIndex === index}
-            aria-label={'Mostrar imagen ' + (index + 1)}
-            onClick={() => setSelectedIndex(index)}
-            key={index}
-          >
-            <GalleryImage title={product.title} image={image} isThumbnail />
-          </button>
-        ))}
-      </div>
+      {product.images.length > 1 && (
+        <div className='mt-3 grid grid-cols-4 gap-3' aria-label='Seleccionar imagen del producto'>
+          {product.images.map((image, index) => (
+            <button
+              className={
+                'relative flex aspect-square cursor-pointer items-center justify-center overflow-hidden border transition-colors ' +
+                (selectedIndex === index ? 'border-blue' : 'border-line hover:border-ink')
+              }
+              type='button'
+              aria-pressed={selectedIndex === index}
+              aria-label={'Mostrar imagen ' + (index + 1)}
+              onClick={() => setSelectedIndex(index)}
+              key={index}
+            >
+              <GalleryImage title={product.title} image={image} isThumbnail />
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

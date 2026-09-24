@@ -6,7 +6,14 @@ import { ProductGallery } from './product-gallery';
 import { Arrow, display, label } from './ui';
 
 export function ProductDetail({ product }: { product: Product }) {
-  const isDigitalLabel = product.type === 'DIGITAL' ? 'DIGITAL' : 'FÍSICO';
+  const hasStock = product.stock > 0;
+  const isDigital = product.type === 'DIGITAL';
+  const isDigitalLabel = isDigital ? 'DIGITAL' : 'FÍSICO';
+  const stockLabel = isDigital
+    ? 'DESCARGA INMEDIATA'
+    : hasStock
+      ? `EN STOCK · ${product.stock} ${product.stock === 1 ? 'DISPONIBLE' : 'DISPONIBLES'}`
+      : 'SIN STOCK';
 
   return (
     <main className='bg-paper pb-20 md:pb-32'>
@@ -27,20 +34,23 @@ export function ProductDetail({ product }: { product: Product }) {
             <h1 className={display + ' mt-7 text-hero leading-hero'}>{product.title}</h1>
             {product.description && <ProductDescription content={product.description} />}
 
-            {/* <p className={label + ' mt-8 text-small'}>{product.availability}</p> */}
+            <p className={label + ' mt-8 text-small'}>{stockLabel}</p>
+
             <div className='mt-5 flex items-end justify-between border-y border-line py-5'>
               <span className={label + ' text-micro text-muted'}>PRECIO</span>
               <strong className={display + ' text-4xl leading-none'}>S/ {product.price}</strong>
             </div>
-            <button
-              className={
-                label +
-                ' mt-7 inline-flex cursor-pointer items-center gap-7 bg-blue px-5 py-4 text-white transition duration-200 hover:-translate-y-0.75 hover:bg-ink'
-              }
-              type='button'
-            >
-              AÑADIR A LA BOLSA <Arrow />
-            </button>
+            {hasStock && (
+              <button
+                className={
+                  label +
+                  ' mt-7 inline-flex cursor-pointer items-center gap-7 bg-blue px-5 py-4 text-white transition duration-200 hover:-translate-y-0.75 hover:bg-ink'
+                }
+                type='button'
+              >
+                AÑADIR A LA BOLSA <Arrow />
+              </button>
+            )}
           </div>
         </div>
       </Container>

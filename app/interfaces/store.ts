@@ -12,6 +12,7 @@ export interface Product {
   type: 'FISICO' | 'DIGITAL';
   category: string;
   cover: string;
+  stock: number;
 }
 
 export interface ProductStrapiResponse {
@@ -29,4 +30,5 @@ export interface ProductStrapiResponse {
   cover: {
     url: string;
   };
+  stock: number;
 }

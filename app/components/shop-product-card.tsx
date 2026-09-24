@@ -13,7 +13,7 @@ export function ShopProductCard({ product }: { product: Product }) {
         <Link className='block' href={'/tienda/' + product.slug}>
           <ProductVisual product={product} />
         </Link>
-        <AddToBagButton product={product} />
+        {product.stock > 0 && <AddToBagButton product={product} />}
       </div>
       <div className='mt-5 flex items-start justify-between gap-5'>
         <div>
