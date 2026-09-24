@@ -110,7 +110,7 @@ export function SiteHeader() {
           </nav>
           <div className='flex items-center gap-4'>
             <Link className={label + ' flex items-center gap-1.5 uppercase'} href='/carrito' onClick={() => setIsMenuOpen(false)}>
-              BOLSA{' '}
+              CARRITO{' '}
               <sup className='flex size-4 items-center justify-center rounded-full bg-blue text-nano text-white'>{itemCount}</sup>
             </Link>
             <button
@@ -156,7 +156,7 @@ export function SiteHeader() {
                       href='/carrito'
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      BOLSA{' '}
+                      CARRITO{' '}
                       <sup className='flex size-4 items-center justify-center rounded-full bg-blue text-nano text-white'>{itemCount}</sup>
                     </Link>
                     <button

@@ -1,9 +1,10 @@
+import { ShoppingCart } from 'lucide-react';
 import { Product } from '../interfaces/store';
 import { Breadcrumbs } from './breadcrumbs';
 import { Container } from './container';
 import { ProductDescription } from './product-description';
 import { ProductGallery } from './product-gallery';
-import { Arrow, display, label } from './ui';
+import { display, label } from './ui';
 
 export function ProductDetail({ product }: { product: Product }) {
   const hasStock = product.stock > 0;
@@ -53,7 +54,7 @@ export function ProductDetail({ product }: { product: Product }) {
                 }
                 type='button'
               >
-                AÑADIR A LA BOLSA <Arrow />
+                AGREGAR AL CARRITO <ShoppingCart aria-hidden='true' className='size-4.5 shrink-0' strokeWidth={1.5} />
               </button>
             )}
 

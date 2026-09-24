@@ -18,7 +18,7 @@ export function CartPage() {
   return (
     <main className='bg-paper pb-20 md:pb-32'>
       <Container>
-        <Breadcrumbs items={[{ label: 'INICIO', href: '/' }, { label: 'BOLSA' }]} />
+        <Breadcrumbs items={[{ label: 'INICIO', href: '/' }, { label: 'CARRITO' }]} />
 
         <div className='border-t border-line pt-9 md:pt-12'>
           <div className='flex items-end justify-between gap-6 max-md:items-start'>
@@ -26,7 +26,7 @@ export function CartPage() {
               <p className={label + ' flex items-center gap-2 text-micro text-muted'}>
                 <i className='block size-2 rounded-full bg-blue' /> PEDIDO / {itemCount.toString().padStart(2, '0')}
               </p>
-              <h1 className={display + ' mt-5 text-section leading-display'}>Tu bolsa</h1>
+              <h1 className={display + ' mt-5 text-section leading-display'}>Tu carrito</h1>
             </div>
             <Link className={textLink + ' mb-1 shrink-0 max-md:hidden'} href='/tienda'>
               SEGUIR EXPLORANDO <Arrow />
@@ -106,7 +106,7 @@ export function CartPage() {
                 </ul>
               ) : (
                 <div className='border-b border-line py-12'>
-                  <p className='max-w-sm text-lg leading-copy text-muted'>Aún no tienes objetos en la bolsa.</p>
+                  <p className='max-w-sm text-lg leading-copy text-muted'>Aún no tienes objetos en el carrito.</p>
                   <Link className={textLink + ' mt-7'} href='/tienda'>
                     EXPLORAR PRODUCTOS <Arrow />
                   </Link>
