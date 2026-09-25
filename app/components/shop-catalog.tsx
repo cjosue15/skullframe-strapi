@@ -1,16 +1,21 @@
-'use client';
-
-import { useState } from 'react';
 import { Category } from '../interfaces/category';
 import { Product } from '../interfaces/store';
 import { Container } from './container';
 import { ShopProductCard } from './shop-product-card';
 import { display, displayItalic, kicker, label } from './ui';
+import CategorySelector from './category-selector';
 
-export function ShopCatalog({ products, categories }: { products: Product[]; categories: Category[] }) {
-  const [activeFilter, setActiveFilter] = useState<number | null>(null);
-  // const visibleProducts = activeFilter === 'TODO' ? products : products.filter((product) => product.category === activeFilter);
-
+export function ShopCatalog({
+  products,
+  categories,
+  activeCategory,
+  totalProducts,
+}: {
+  products: Product[];
+  categories: Category[];
+  activeCategory: string | null | undefined;
+  totalProducts: number;
+}) {
   return (
     <section className='min-h-screen bg-paper' aria-labelledby='shop-title'>
       <Container>
@@ -30,36 +35,8 @@ export function ShopCatalog({ products, categories }: { products: Product[]; cat
           </div>
         </div>
         <div className='flex items-center justify-between gap-6 py-7 max-md:block'>
-          <nav className='flex flex-wrap gap-x-7 gap-y-4' aria-label='Filtrar catálogo'>
-            <button
-              className={
-                label +
-                ' cursor-pointer text-muted transition-colors hover:text-blue ' +
-                (activeFilter === null ? 'text-ink' : '')
-              }
-              type='button'
-              aria-pressed={activeFilter === null}
-              onClick={() => setActiveFilter(null)}
-            >
-              TODO
-            </button>
-            {categories.map((category) => (
-              <button
-                className={
-                  label +
-                  ' cursor-pointer text-muted transition-colors hover:text-blue ' +
-                  (activeFilter === category.id ? 'text-ink' : '')
-                }
-                type='button'
-                aria-pressed={activeFilter === category.id}
-                onClick={() => setActiveFilter(category.id)}
-                key={category.id}
-              >
-                {category.name.toUpperCase()}
-              </button>
-            ))}
-          </nav>
-          {/* <p className={label + ' text-micro text-muted max-md:mt-6'}>{visibleProducts.length} OBJETOS DISPONIBLES</p> */}
+          <CategorySelector categories={categories} activeCategory={activeCategory} />
+          <p className={label + ' text-micro text-muted max-md:mt-6'}>{totalProducts} OBJETOS DISPONIBLES</p>
         </div>
         <div
           className='grid grid-cols-1 gap-x-9 gap-y-18 pb-12 sm:grid-cols-2 lg:grid-cols-3 max-md:gap-y-12 md:pb-16'
@@ -68,7 +45,6 @@ export function ShopCatalog({ products, categories }: { products: Product[]; cat
           {products.map((product) => (
             <ShopProductCard key={product.slug} product={product} />
           ))}
-          {/* {visibleProducts.map((product) => <ShopProductCard key={product.slug} product={product} />)} */}
         </div>
       </Container>
     </section>

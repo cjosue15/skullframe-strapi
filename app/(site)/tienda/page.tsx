@@ -18,6 +18,10 @@ function parsePositiveInteger(value: string | string[] | undefined, fallback: nu
   return Number.isSafeInteger(number) && number > 0 && number <= max ? number : fallback;
 }
 
+function parseCategory(value: string | string[] | undefined) {
+  return typeof value === 'string' && value.length ? value : undefined;
+}
+
 function createSearchParams(searchParams: ShopSearchParams) {
   const params = new URLSearchParams();
 
@@ -36,24 +40,31 @@ export const metadata: Metadata = {
 
 export default async function ShopPage({ searchParams }: { searchParams: Promise<ShopSearchParams> }) {
   const currentSearchParams = await searchParams;
-  const { page, pageSize } = currentSearchParams;
+  const { page, pageSize, category } = currentSearchParams;
   const pageNumber = parsePositiveInteger(page, DEFAULT_PAGE);
   const pageSizeNumber = parsePositiveInteger(pageSize, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+  const activeCategory = parseCategory(category);
 
-  if (page !== pageNumber.toString() || pageSize !== pageSizeNumber.toString()) {
+  if (page !== pageNumber.toString() || pageSize !== pageSizeNumber.toString() || category !== activeCategory) {
     const normalizedSearchParams = createSearchParams(currentSearchParams);
     normalizedSearchParams.set('page', pageNumber.toString());
     normalizedSearchParams.set('pageSize', pageSizeNumber.toString());
+    if (activeCategory) normalizedSearchParams.set('category', activeCategory);
+    else normalizedSearchParams.delete('category');
 
     redirect('/tienda?' + normalizedSearchParams.toString());
   }
 
-  const { products, pagination } = await getStoreInfo({ pageSize: pageSizeNumber, page: pageNumber });
+  const { products, pagination } = await getStoreInfo({
+    pageSize: pageSizeNumber,
+    page: pageNumber,
+    category: activeCategory,
+  });
   const categories = await getCategories();
 
   return (
     <main>
-      <ShopCatalog products={products} categories={categories} />
+      <ShopCatalog products={products} categories={categories} activeCategory={activeCategory} totalProducts={pagination.total} />
       <Container>
         <div className='pb-6'>
           <Pagination pagination={pagination} />

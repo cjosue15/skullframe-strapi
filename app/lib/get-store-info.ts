@@ -6,17 +6,20 @@ const { STRAPI_HOST } = process.env;
 interface StoreParams {
   pageSize: number;
   page: number;
+  category?: string;
 }
 
 export async function getStoreInfo({
   pageSize,
   page,
+  category,
 }: StoreParams): Promise<{ products: Product[]; pagination: ProductPagination }> {
   let url =
     'productos?fields[0]=title&fields[1]=slug&fields[2]=price&fields[3]=description&fields[4]=shortDescription&fields[5]=type&fields[6]=stock&populate[category][fields][0]=name&populate[images][fields][0]=url&populate[cover][fields][0]=url';
 
   if (page) url += `&pagination[page]=${page}`;
   if (pageSize) url += `&pagination[pageSize]=${pageSize}`;
+  if (category) url += `&filters[category][slug][$eq]=${encodeURIComponent(category)}`;
 
   const { data, meta } = await query<{
     data: ProductStrapiResponse[];
