@@ -10,7 +10,7 @@ export function ShopProductCard({ product }: { product: Product }) {
   return (
     <article className='group min-w-0'>
       <div className='relative overflow-hidden'>
-        <Link className='block' href={'/tienda/' + product.slug}>
+        <Link className='block' href={'/producto/' + product.slug}>
           <ProductVisual product={product} />
         </Link>
         {/* At this moment we are only supporting the digital products */}
@@ -26,7 +26,7 @@ export function ShopProductCard({ product }: { product: Product }) {
         </div>
         <Link
           className='flex size-8 shrink-0 items-center justify-center rounded-full bg-soft-blue text-ink transition duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:bg-blue group-hover:text-white'
-          href={'/tienda/' + product.slug}
+          href={'/producto/' + product.slug}
           aria-label={'Ver ' + product.title}
         >
           <Arrow />

@@ -57,7 +57,7 @@ export function CartPage() {
                             </p>
                             <Link
                               className={display + ' mt-2 block text-product leading-product hover:text-blue'}
-                              href={'/tienda/' + product.slug}
+                              href={'/producto/' + product.slug}
                             >
                               {product.title}
                             </Link>
