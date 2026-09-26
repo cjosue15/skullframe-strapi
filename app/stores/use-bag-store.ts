@@ -4,15 +4,15 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { Product } from '../interfaces/store';
 
-export type BagItem = Pick<Product, 'slug' | 'title' | 'price' | 'type' | 'category' | 'cover'> & {
+export type BagItem = Pick<Product, 'id' | 'slug' | 'title' | 'price' | 'type' | 'category' | 'cover'> & {
   quantity: number;
 };
 
 type BagStore = {
   items: BagItem[];
   addItem: (product: Product) => void;
-  updateQuantity: (slug: string, quantity: number) => void;
-  removeItem: (slug: string) => void;
+  updateQuantity: (id: number, quantity: number) => void;
+  removeItem: (id: number) => void;
 };
 
 export const useBagStore = create<BagStore>()(
@@ -21,12 +21,12 @@ export const useBagStore = create<BagStore>()(
       items: [],
       addItem: (product) => {
         set((state) => {
-          const existingItem = state.items.find((item) => item.slug === product.slug);
+          const existingItem = state.items.find((item) => item.id === product.id);
 
           if (existingItem) {
             return {
               items: state.items.map((item) =>
-                item.slug === product.slug ? { ...item, quantity: item.quantity + 1 } : item,
+                item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item,
               ),
             };
           }
@@ -40,6 +40,7 @@ export const useBagStore = create<BagStore>()(
                 price: product.price,
                 type: product.type,
                 category: product.category,
+                id: product.id,
                 cover: product.cover,
                 quantity: 1,
               },
@@ -47,16 +48,16 @@ export const useBagStore = create<BagStore>()(
           };
         });
       },
-      updateQuantity: (slug, quantity) => {
+      updateQuantity: (id, quantity) => {
         set((state) => ({
           items:
             quantity > 0
-              ? state.items.map((item) => (item.slug === slug ? { ...item, quantity } : item))
-              : state.items.filter((item) => item.slug !== slug),
+              ? state.items.map((item) => (item.id === id ? { ...item, quantity } : item))
+              : state.items.filter((item) => item.id !== id),
         }));
       },
-      removeItem: (slug) => {
-        set((state) => ({ items: state.items.filter((item) => item.slug !== slug) }));
+      removeItem: (id) => {
+        set((state) => ({ items: state.items.filter((item) => item.id !== id) }));
       },
     }),
     {

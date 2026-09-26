@@ -75,16 +75,18 @@ export function CartPage() {
                               className='flex size-7 cursor-pointer items-center justify-center text-muted transition-colors hover:bg-soft-blue hover:text-ink'
                               type='button'
                               aria-label={'Reducir cantidad de ' + product.title}
-                              onClick={() => updateQuantity(product.slug, product.quantity - 1)}
+                              onClick={() => updateQuantity(product.id, product.quantity - 1)}
                             >
                               <Minus aria-hidden='true' className='size-3.5' strokeWidth={1.75} />
                             </button>
-                            <span className='grid size-7 place-content-center border-x border-line'>{product.quantity}</span>
+                            <span className='grid size-7 place-content-center border-x border-line'>
+                              {product.quantity}
+                            </span>
                             <button
                               className='flex size-7 cursor-pointer items-center justify-center text-muted transition-colors hover:bg-soft-blue hover:text-ink'
                               type='button'
                               aria-label={'Aumentar cantidad de ' + product.title}
-                              onClick={() => updateQuantity(product.slug, product.quantity + 1)}
+                              onClick={() => updateQuantity(product.id, product.quantity + 1)}
                             >
                               <Plus aria-hidden='true' className='size-3.5' strokeWidth={1.75} />
                             </button>
@@ -95,7 +97,7 @@ export function CartPage() {
                               ' cursor-pointer text-micro text-muted underline decoration-line underline-offset-3 transition-colors hover:text-blue'
                             }
                             type='button'
-                            onClick={() => removeItem(product.slug)}
+                            onClick={() => removeItem(product.id)}
                           >
                             QUITAR
                           </button>
@@ -107,14 +109,8 @@ export function CartPage() {
               ) : (
                 <div className='border-b border-line py-12'>
                   <p className='max-w-sm text-lg leading-copy text-muted'>Aún no tienes objetos en el carrito.</p>
-                  <Link className={textLink + ' mt-7'} href='/tienda'>
-                    EXPLORAR PRODUCTOS <Arrow />
-                  </Link>
                 </div>
               )}
-              <Link className={textLink + ' mt-7 max-md:inline-flex'} href='/tienda'>
-                SEGUIR EXPLORANDO <Arrow />
-              </Link>
             </section>
 
             <aside
@@ -132,10 +128,10 @@ export function CartPage() {
                   <dt className='text-muted-on-dark'>SUBTOTAL</dt>
                   <dd>S/ {subtotal}</dd>
                 </div>
-                <div className='flex justify-between gap-6'>
+                {/* <div className='flex justify-between gap-6'>
                   <dt className='text-muted-on-dark'>ENVÍO</dt>
                   <dd>SE CALCULA AL FINAL</dd>
-                </div>
+                </div> */}
               </dl>
               <div className='mt-6 flex items-end justify-between gap-5'>
                 <span className={label + ' text-micro text-muted-on-dark'}>TOTAL</span>
@@ -150,9 +146,9 @@ export function CartPage() {
               >
                 IR A PAGAR <Arrow />
               </button>
-              <p className='mt-5 text-caption leading-copy text-muted-on-dark'>
+              {/* <p className='mt-5 text-caption leading-copy text-muted-on-dark'>
                 El envío se calcula con tu dirección en el siguiente paso.
-              </p>
+              </p> */}
             </aside>
           </div>
         </div>

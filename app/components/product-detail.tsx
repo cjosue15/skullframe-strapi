@@ -1,7 +1,7 @@
-import { ShoppingCart } from 'lucide-react';
 import { Product } from '../interfaces/store';
 import { Breadcrumbs } from './breadcrumbs';
 import { Container } from './container';
+import ProductAddCart from './product-add-cart';
 import { ProductDescription } from './product-description';
 import { ProductGallery } from './product-gallery';
 import { display, label } from './ui';
@@ -46,17 +46,10 @@ export function ProductDetail({ product }: { product: Product }) {
               <i className='block size-1.5 rounded-full bg-current' /> {stockLabel}
             </p>
 
-            {hasStock && (
+            {/* (hasStock || isDigital) At this moment we are only supporting the digital products */}
+            {isDigital && (
               <div className='my-5 flex flex-col gap-3 sm:flex-row'>
-                <button
-                  className={
-                    label +
-                    ' inline-flex cursor-pointer items-center justify-center gap-4 bg-blue px-5 py-4 text-white transition duration-200 hover:-translate-y-0.75 hover:bg-ink'
-                  }
-                  type='button'
-                >
-                  AGREGAR AL CARRITO <ShoppingCart aria-hidden='true' className='size-4.5 shrink-0' strokeWidth={1.5} />
-                </button>
+                <ProductAddCart product={product} />
                 <button
                   className={
                     label +

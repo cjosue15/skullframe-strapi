@@ -13,7 +13,9 @@ export function ShopProductCard({ product }: { product: Product }) {
         <Link className='block' href={'/tienda/' + product.slug}>
           <ProductVisual product={product} />
         </Link>
-        {product.stock > 0 && <AddToBagButton product={product} />}
+        {/* At this moment we are only supporting the digital products */}
+        {product.type === 'DIGITAL' && <AddToBagButton product={product} />}
+        {/* {product.stock > 0 && <AddToBagButton product={product} />} */}
       </div>
       <div className='mt-5 flex items-start justify-between gap-5'>
         <div>
