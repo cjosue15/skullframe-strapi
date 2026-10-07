@@ -1,3 +1,4 @@
+/** All monetary fields in orders are stored as integer cents. Catalog prices remain in soles. */
 export interface CreateOrder {
   orderNumber: string;
   email: string;
@@ -12,6 +13,7 @@ export interface CreateOrder {
   items: OrderItem[];
 }
 
+/** unitPrice and totalPrice are integer cents. */
 export interface OrderItem {
   productId: number;
   name: string;
@@ -23,6 +25,7 @@ export interface OrderItem {
   cover: string;
 }
 
+/** Strapi serializes bigint monetary fields in cents as strings. */
 export interface OrderResponse {
   documentId: string;
   orderNumber: string;
@@ -31,6 +34,7 @@ export interface OrderResponse {
   items: OrderItemResponse[];
 }
 
+/** unitPrice is a string containing integer cents. */
 export interface OrderItemResponse {
   name: string;
   quantity: number;

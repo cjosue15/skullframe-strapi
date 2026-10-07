@@ -1,7 +1,8 @@
-import { CreateOrder, OrderResponse } from '../interfaces/order';
+import { CreateOrder, OrderItem, OrderResponse } from '../interfaces/order';
 import { ProductItem } from '../interfaces/store';
 import { getItemsForOrder } from './get-items-for-order';
 import { queryV2 } from './strapi';
+import { solesToCents } from './money';
 
 export const getOrCreateOrder = async (
   email: string,
@@ -22,39 +23,56 @@ export const getOrCreateOrder = async (
     return [new Error('No products found for the given items'), null];
   }
 
-  const subtotalAmount = products.reduce((acc, product) => {
-    const item = items.find((i) => i.id === product.id);
-    return acc + (item?.quantity || 1) * product.price;
-  }, 0);
-
-  const discountAmount = 0;
-  const totalAmount = subtotalAmount - discountAmount;
-
-  const newOrder: CreateOrder = {
-    orderNumber: crypto.randomUUID(),
-    currency: 'PEN',
-    idempotencyKey: key,
-    email,
-    subtotalAmount,
-    discountAmount,
-    totalAmount,
-    orderStatus: 'PENDING_PAYMENT',
-    paymentStatus: 'PENDING',
-    providerOrderId: '',
-
-    items: products.map((product) => ({
-      productId: product.id,
-      name: product.title,
-      type: product.type,
-      slug: product.slug,
-      quantity: items.find((item) => item.id === product.id)?.quantity || 1,
-      unitPrice: product.price,
-      totalPrice: (items.find((item) => item.id === product.id)?.quantity || 1) * product.price,
-      cover: process.env.NODE_ENV === 'production' ? product.cover.url : 'https://placehold.net/400x400.png',
-    })),
-  };
-
   try {
+    const orderItems: OrderItem[] = products.map((product) => {
+      const quantity = items.find((item) => item.id === product.id)?.quantity;
+
+      if (quantity === undefined || !Number.isSafeInteger(quantity) || quantity <= 0) {
+        throw new Error('La cantidad de cada producto debe ser un entero positivo.');
+      }
+
+      const unitPrice = solesToCents(product.price);
+      const totalPrice = unitPrice * quantity;
+
+      if (!Number.isSafeInteger(totalPrice)) {
+        throw new Error('El importe del producto supera el máximo permitido.');
+      }
+
+      return {
+        productId: product.id,
+        name: product.title,
+        type: product.type,
+        slug: product.slug,
+        quantity,
+        unitPrice,
+        totalPrice,
+        cover: process.env.NODE_ENV === 'production' ? product.cover.url : 'https://placehold.net/400x400.png',
+      };
+    });
+
+    const subtotalAmount = orderItems.reduce((total, item) => total + item.totalPrice, 0);
+
+    if (!Number.isSafeInteger(subtotalAmount)) {
+      throw new Error('El importe de la orden supera el máximo permitido.');
+    }
+
+    const discountAmount = 0;
+    const totalAmount = subtotalAmount - discountAmount;
+
+    const newOrder: CreateOrder = {
+      orderNumber: crypto.randomUUID(),
+      currency: 'PEN',
+      idempotencyKey: key,
+      email,
+      subtotalAmount,
+      discountAmount,
+      totalAmount,
+      orderStatus: 'PENDING_PAYMENT',
+      paymentStatus: 'PENDING',
+      providerOrderId: '',
+      items: orderItems,
+    };
+
     const [error, result] = await queryV2<{ data: OrderResponse }>(
       'orders?populate=items',
       'POST',
@@ -66,7 +84,7 @@ export const getOrCreateOrder = async (
     }
 
     return [null, result.data];
-  } catch {
-    return [new Error('Error creating order'), null];
+  } catch (error) {
+    return [error instanceof Error ? error : new Error('Error creating order'), null];
   }
 };

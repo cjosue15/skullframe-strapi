@@ -1,5 +1,6 @@
 import { MercadoPagoError, MercadoPagoErrorBody, MercadoPagoOrderResponse } from '../interfaces/mercadopago';
 import { OrderResponse } from '../interfaces/order';
+import { centsToSoles } from './money';
 
 export const createMercadoPagoOrder = async (
   key: string,
@@ -15,14 +16,14 @@ export const createMercadoPagoOrder = async (
       },
       body: JSON.stringify({
         type: 'online',
-        total_amount: order.totalAmount.toString(),
+        total_amount: centsToSoles(order.totalAmount),
         external_reference: order.orderNumber,
         processing_mode: 'manual',
         items: order.items.map((item) => ({
           external_code: item.productId.toString(),
           title: item.name,
           quantity: item.quantity,
-          unit_price: item.unitPrice.toString(),
+          unit_price: centsToSoles(item.unitPrice),
           picture_url: item.cover,
         })),
         config: {

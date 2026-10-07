@@ -20,6 +20,16 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Importes del checkout
+
+Los precios de productos en Strapi (`producto.price`) se ingresan en soles, con hasta dos decimales: por ejemplo, `19.90`.
+
+El servidor convierte los precios a céntimos antes de calcular y guardar una orden. Los campos `unitPrice`, `totalPrice`, `subtotalAmount`, `discountAmount` y `totalAmount` de las nuevas órdenes contienen enteros en céntimos. Por ejemplo, tres unidades de S/ 19.90 se guardan con `unitPrice: 1990` y `totalAmount: 5970`.
+
+Al crear la orden de Mercado Pago, estos importes se convierten a textos en soles con dos decimales (`"19.90"` y `"59.70"`). Los precios con fracciones menores a un céntimo se rechazan; no se redondean silenciosamente.
+
+Las pruebas de importes y del recorrido desde la creación en Strapi hasta la petición a Mercado Pago se ejecutan con `pnpm test`, usando servicios simulados.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
