@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const updateError = await updateMercadoPagoOrder(order.documentId);
+  const updateError = await updateMercadoPagoOrder(order.documentId, orderResponse.id);
 
   if (updateError) return strapiErrorResponse(updateError);
 
