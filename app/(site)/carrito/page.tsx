@@ -1,5 +1,5 @@
 import { CartPage } from '../../components/cart-page';
 
-export default function Cart() {
+export default async function Cart() {
   return <CartPage />;
 }

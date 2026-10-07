@@ -39,3 +39,15 @@ export interface ProductPagination {
   pageCount: number;
   total: number;
 }
+
+export interface OrderPayload {
+  key: string;
+  email: string;
+  items: ProductItem[];
+}
+
+export interface ProductItem {
+  id: number;
+  quantity: number;
+  cover: string;
+}

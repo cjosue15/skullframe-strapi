@@ -7,6 +7,7 @@ import { useBagStore } from '../stores/use-bag-store';
 import { Breadcrumbs } from './breadcrumbs';
 import { Container } from './container';
 import { Arrow, display, label, textLink } from './ui';
+import { useRouter } from 'next/navigation';
 
 export function CartPage() {
   const items = useBagStore((state) => state.items);
@@ -14,6 +15,13 @@ export function CartPage() {
   const updateQuantity = useBagStore((state) => state.updateQuantity);
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
   const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
+  const router = useRouter();
+
+  const handleCheckout = async () => {
+    const key = crypto.randomUUID();
+
+    router.push('/checkout?key=' + key);
+  };
 
   return (
     <main className='bg-paper pb-20 md:pb-32'>
@@ -143,6 +151,7 @@ export function CartPage() {
                   ' mt-8 flex w-full cursor-pointer items-center justify-between bg-aqua px-5 py-4 text-ink transition duration-200 hover:bg-paper'
                 }
                 type='button'
+                onClick={handleCheckout}
               >
                 IR A PAGAR <Arrow />
               </button>
