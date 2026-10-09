@@ -8,7 +8,8 @@ import { Breadcrumbs } from './breadcrumbs';
 import { Container } from './container';
 import { Arrow, display, label, textLink } from './ui';
 import PaymentButton from '../(site)/checkout/payment-button';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 
 const priceFormatter = new Intl.NumberFormat('es-PE', {
   style: 'currency',
@@ -19,13 +20,47 @@ const priceFormatter = new Intl.NumberFormat('es-PE', {
 export function CheckoutPage({ idempotencyKey }: { idempotencyKey: string }) {
   const [email, setEmail] = useState<string>('');
   const [agreeTerms, setAgreeTerms] = useState<boolean>(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [termsError, setTermsError] = useState<string | null>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const termsRef = useRef<HTMLInputElement>(null);
   const items = useBagStore((state) => state.items);
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
   const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
 
+  useEffect(() => () => toast.remove('checkout-error'), []);
+
+  const showError = (message: string) =>
+    toast.error(message, {
+      id: 'checkout-error',
+      ariaProps: { role: 'alert', 'aria-live': 'assertive' },
+    });
+
   const handleValidation = () => {
-    if (!email || !agreeTerms) {
-      alert('Por favor, completa tu correo y acepta los términos y condiciones antes de continuar.');
+    toast.remove('checkout-error');
+    setEmailError(null);
+    setTermsError(null);
+
+    const normalizedEmail = email.trim();
+    if (
+      !normalizedEmail ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) ||
+      emailRef.current?.validity.typeMismatch
+    ) {
+      const message = normalizedEmail
+        ? 'Ingresa un correo válido, por ejemplo: tu@correo.com.'
+        : 'Ingresa tu correo electrónico para continuar.';
+      setEmailError(message);
+      showError(message);
+      emailRef.current?.focus();
+      return false;
+    }
+
+    if (!agreeTerms) {
+      const message = 'Acepta los términos y condiciones para continuar con la compra.';
+      setTermsError(message);
+      showError(message);
+      termsRef.current?.focus();
       return false;
     }
     return true;
@@ -57,8 +92,13 @@ export function CheckoutPage({ idempotencyKey }: { idempotencyKey: string }) {
           </div>
 
           {items.length ? (
-            <div className='mt-12 grid items-start gap-14 lg:grid-cols-12 lg:gap-20'>
-              <form className='lg:col-span-7' id='checkout-form'>
+            <form
+              className='mt-12 grid items-start gap-14 lg:grid-cols-12 lg:gap-20'
+              id='checkout-form'
+              noValidate
+              onSubmit={(event) => event.preventDefault()}
+            >
+              <div className='lg:col-span-7'>
                 <section aria-labelledby='contact-title'>
                   <div className='flex items-start gap-5 border-b border-line pb-5'>
                     <span className={label + ' grid size-8 shrink-0 place-items-center bg-ink text-micro text-paper'}>
@@ -85,18 +125,30 @@ export function CheckoutPage({ idempotencyKey }: { idempotencyKey: string }) {
                         strokeWidth={1.5}
                       />
                       <input
-                        className='h-14 w-full border border-line bg-transparent pr-4 pl-12 text-base outline-none transition-colors placeholder:text-muted/70 focus:border-blue'
+                        className={`h-14 w-full border bg-transparent pr-4 pl-12 text-base outline-none transition-colors placeholder:text-muted/70 ${emailError ? 'border-red-700 focus:border-red-700' : 'border-line focus:border-blue'}`}
+                        ref={emailRef}
                         id='checkout-email'
                         name='email'
                         type='email'
                         autoComplete='email'
+                        autoCapitalize='none'
+                        spellCheck={false}
                         placeholder='tu@correo.com'
                         required
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        aria-invalid={emailError ? true : undefined}
+                        aria-describedby={
+                          emailError ? 'checkout-email-error checkout-email-hint' : 'checkout-email-hint'
+                        }
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setEmailError(null);
+                        }}
+                        onBlur={() => setEmail((value) => value.trim())}
                       />
                     </div>
-                    <p className='mt-3 text-small leading-copy text-muted'>
+
+                    <p className='mt-3 text-small leading-copy text-muted' id='checkout-email-hint'>
                       Aquí recibirás la confirmación y el acceso a tus descargables.
                     </p>
                   </div>
@@ -134,15 +186,22 @@ export function CheckoutPage({ idempotencyKey }: { idempotencyKey: string }) {
                   <input
                     className='mt-1 size-4 shrink-0 accent-blue'
                     name='terms'
+                    ref={termsRef}
                     type='checkbox'
                     required
-                    onChange={(e) => setAgreeTerms(e.target.checked)}
+                    checked={agreeTerms}
+                    aria-invalid={termsError ? true : undefined}
+                    aria-describedby={termsError ? 'checkout-terms-error' : undefined}
+                    onChange={(e) => {
+                      setAgreeTerms(e.target.checked);
+                      setTermsError(null);
+                    }}
                   />
                   <span>
                     Acepto los términos y condiciones y autorizo el uso de mi correo para gestionar esta compra.
                   </span>
                 </label>
-              </form>
+              </div>
 
               <aside
                 className='bg-ink p-7 text-paper lg:sticky lg:top-25 lg:col-span-5 md:p-9'
@@ -202,13 +261,18 @@ export function CheckoutPage({ idempotencyKey }: { idempotencyKey: string }) {
                   <strong className={display + ' text-4xl leading-none'}>{priceFormatter.format(subtotal)}</strong>
                 </div>
 
-                <PaymentButton idempotencyKey={idempotencyKey} email={email} handleValidation={handleValidation} />
+                <PaymentButton
+                  idempotencyKey={idempotencyKey}
+                  email={email.trim()}
+                  handleValidation={handleValidation}
+                  onError={showError}
+                />
                 <p className='mt-5 flex items-start gap-2 text-small leading-copy text-muted-on-dark'>
                   <LockKeyhole aria-hidden='true' className='size-4 shrink-0' strokeWidth={1.5} />
                   Tus datos de pago serán procesados de forma segura.
                 </p>
               </aside>
-            </div>
+            </form>
           ) : (
             <section className='mt-12 border-y border-line py-16 md:py-20'>
               <p className={display + ' text-4xl leading-none'}>Tu carrito está vacío.</p>

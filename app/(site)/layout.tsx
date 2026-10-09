@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { BagStoreHydrator } from '../components/bag-store-hydrator';
 import { SiteFooter } from '../components/site-footer';
 import { SiteHeader } from '../components/site-header';
+import { SiteToaster } from '../components/site-toaster';
 
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export default function SiteLayout({ children }: { children: ReactNode }) {
       <SiteHeader />
       {children}
       <SiteFooter />
+      <SiteToaster />
     </div>
   );
 }
