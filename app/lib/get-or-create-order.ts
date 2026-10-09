@@ -1,18 +1,67 @@
 import { CreateOrder, OrderItem, OrderResponse } from '../interfaces/order';
 import { ProductItem } from '../interfaces/store';
 import { getItemsForOrder } from './get-items-for-order';
-import { queryV2 } from './strapi';
 import { solesToCents } from './money';
+import { queryV2 } from './strapi';
 
-export const getOrCreateOrder = async (
+export class IdempotencyConflictError extends Error {
+  constructor() {
+    super('El correo o los productos cambiaron. Inicia un nuevo intento de compra.');
+    this.name = 'IdempotencyConflictError';
+  }
+}
+
+export const normalizeOrderEmail = (email: string): string => email.trim().toLowerCase();
+
+export const getOrderByIdempotencyKey = async (
+  key: string,
+  email: string,
+  items: ProductItem[],
+): Promise<[Error | null, null | OrderResponse]> => {
+  const params = new URLSearchParams({
+    'filters[idempotencyKey][$eq]': key,
+    populate: 'items',
+    'pagination[pageSize]': '2',
+  });
+  const [error, result] = await queryV2<{ data: OrderResponse[] }>(
+    `orders?${params.toString()}`,
+    'GET',
+    undefined,
+    { cache: 'no-store' },
+  );
+
+  if (error) {
+    return [error, null];
+  }
+
+  if (result.data.length > 1) {
+    return [new Error('Hay más de una orden registrada para este intento de compra.'), null];
+  }
+
+  const order = result.data[0];
+  if (!order) return [null, null];
+
+  const quantities = new Map(items.map((item) => [item.id, item.quantity]));
+  const savedIds = new Set(order.items.map((item) => item.productId));
+  const sameItems = quantities.size === items.length
+    && savedIds.size === order.items.length
+    && order.items.length === items.length
+    && order.items.every((item) => quantities.get(item.productId) === item.quantity);
+
+  if (normalizeOrderEmail(order.email) !== normalizeOrderEmail(email) || !sameItems) {
+    return [new IdempotencyConflictError(), null];
+  }
+
+  // Return incomplete orders too: the checkout route resumes the same attempt.
+  // TODO: Check payment/order states once webhook reconciliation is implemented.
+  return [null, order];
+};
+
+export const createOrder = async (
   email: string,
   key: string,
   items: ProductItem[],
 ): Promise<[Error | null, null | OrderResponse]> => {
-  // TODO: Check if an order already exists for the given key
-
-  // Create a new order if it doesn't exist
-
   const [error, products] = await getItemsForOrder(items);
 
   if (error) {
@@ -63,7 +112,7 @@ export const getOrCreateOrder = async (
       orderNumber: crypto.randomUUID(),
       currency: 'PEN',
       idempotencyKey: key,
-      email,
+      email: normalizeOrderEmail(email),
       subtotalAmount,
       discountAmount,
       totalAmount,
@@ -80,6 +129,10 @@ export const getOrCreateOrder = async (
     );
 
     if (error) {
+      // Another request may have created the order, or the write response was lost.
+      const [lookupError, savedOrder] = await getOrderByIdempotencyKey(key, email, items);
+      if (lookupError instanceof IdempotencyConflictError) return [lookupError, null];
+      if (!lookupError && savedOrder) return [null, savedOrder];
       return [error, null];
     }
 
