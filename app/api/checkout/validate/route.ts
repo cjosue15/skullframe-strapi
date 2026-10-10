@@ -1,3 +1,4 @@
+import { saveWebhookEvent } from '@/app/lib/save-webhook-event';
 import { WebhookSignatureValidator, InvalidWebhookSignatureError } from 'mercadopago';
 import type { NextRequest } from 'next/server';
 
@@ -22,9 +23,10 @@ export async function POST(request: NextRequest) {
 
   const dataIds = request.nextUrl.searchParams.getAll('data.id');
 
-  const dataId = dataIds[0]?.trim()?.toLowerCase();
+  const providerOrderId = dataIds[0]?.trim();
+  const dataId = providerOrderId?.toLowerCase();
 
-  if (!xSignature || !xRequestId || !dataId || dataIds.length !== 1) {
+  if (!xSignature || !xRequestId || !providerOrderId || !dataId || dataIds.length !== 1) {
     return respond(401);
   }
 
@@ -51,8 +53,23 @@ export async function POST(request: NextRequest) {
     // Other topics do not belong to this checkout integration.
     if (body.type !== 'order') return respond(200);
 
-    // Reception only: canonical order lookup and persistence are still pending.
-    // Never approve a payment using the notification's status or amount.
+    // Action is untrusted metadata, never a trigger for approving or discarding a payment.
+    const action = typeof body.action === 'string' ? body.action.trim() : '';
+    const eventAction = action.length <= 128 && /^order\.[a-z_]+$/.test(action)
+      ? action
+      : undefined;
+    const saveError = await saveWebhookEvent({
+      providerOrderId,
+      requestId: xRequestId,
+      eventAction,
+    });
+    if (saveError) {
+      console.error('Mercado Pago webhook persistence failed', { reason: 'event_save_failed' });
+      return respond(503);
+    }
+
+    // Receipt is durable. Canonical lookup, matching and reconciliation belong to the processor.
+    // Repeated notifications can create several receipts; processing must be idempotent.
     return respond(200);
   } catch (err) {
     if (err instanceof InvalidWebhookSignatureError) {

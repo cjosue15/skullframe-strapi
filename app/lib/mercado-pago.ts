@@ -67,6 +67,10 @@ export const createMercadoPagoOrder = async (
           unit_price: centsToSoles(item.unitPrice),
           picture_url: item.cover,
         })),
+        payer: {
+          email: 'test_user_123134431015783029@testuser.com',
+          // email: order.email,
+        },
         config: {
           online: {
             auto_return: 'approved',
@@ -75,7 +79,6 @@ export const createMercadoPagoOrder = async (
         },
       }),
     });
-
   } catch (e) {
     return [
       new MercadoPagoError(
@@ -86,6 +89,53 @@ export const createMercadoPagoOrder = async (
       null,
     ];
   }
+};
+
+/** Reads the canonical order using its original provider ID, not the webhook's lowercase signature ID. */
+export const getMercadoPagoOrderById = async (
+  providerOrderId: string,
+): Promise<[MercadoPagoError, null] | [null, MercadoPagoOrderDetails]> => {
+  if (!providerOrderId.trim()) {
+    return [new MercadoPagoError(502, 'El ID de la orden de pago no es válido.', 'invalid_order'), null];
+  }
+
+  const [error, details] = await mercadoPagoRequest<MercadoPagoOrderDetails>(
+    `orders/${encodeURIComponent(providerOrderId)}`,
+  );
+  if (error) return [error, null];
+  if (!details || details.id !== providerOrderId
+    || typeof details.status !== 'string' || !details.status.trim()
+    || typeof details.external_reference !== 'string' || !details.external_reference.trim()) {
+    return [new MercadoPagoError(502, 'Respuesta de la orden de pago inválida.', 'invalid_response'), null];
+  }
+
+  return [null, details];
+};
+
+/** Shared checks before accepting provider data for a local purchase. */
+export const validateMercadoPagoOrder = (
+  order: OrderResponse,
+  details: MercadoPagoOrderDetails,
+): MercadoPagoError | null => {
+  let matchingAmount = false;
+  try {
+    const localAmount = Number(order.totalAmount);
+    matchingAmount = /^\d+$/.test(order.totalAmount)
+      && Number.isSafeInteger(localAmount)
+      && solesToCents(details.total_amount) === localAmount;
+  } catch {
+    // Invalid amounts must not be accepted as a matching purchase.
+  }
+
+  if ((order.providerOrderId && order.providerOrderId !== details.id)
+    || details.external_reference !== order.orderNumber
+    || !matchingAmount
+    || details.currency !== order.currency
+    || details.type !== 'online'
+    || details.processing_mode !== 'manual') {
+    return new MercadoPagoError(502, 'Los datos de la orden de pago no coinciden.', 'invalid_response');
+  }
+  return null;
 };
 
 /** Finds a checkout whose creation response or Strapi update may have been lost. */
@@ -124,43 +174,36 @@ export const recoverMercadoPagoOrder = async (
     providerOrderId = foundOrder.id;
   }
 
-  const [error, details] = await mercadoPagoRequest<MercadoPagoOrderDetails>(
-    `orders/${encodeURIComponent(providerOrderId)}`,
-  );
+  const [error, details] = await getMercadoPagoOrderById(providerOrderId);
   if (error) return [error, null];
-
-  let matchingAmount = false;
-  try {
-    matchingAmount = solesToCents(details?.total_amount) === Number(order.totalAmount);
-  } catch {
-    // Invalid provider amounts must not be accepted during recovery.
-  }
-
-  if (!details || details.id !== providerOrderId
-    || details.external_reference !== order.orderNumber
-    || !matchingAmount
-    || details.currency !== order.currency
-    || details.type !== 'online' || details.processing_mode !== 'manual') {
-    return [new MercadoPagoError(502, 'Los datos de la orden de pago no coinciden.', 'invalid_response'), null];
-  }
+  const validationError = validateMercadoPagoOrder(order, details);
+  if (validationError) return [validationError, null];
 
   let checkoutUrl = details.checkout_url?.trim();
-  if (!checkoutUrl && (details.status === 'created'
-    || (details.status === 'failed' && details.config?.online?.retries?.allowed === true))) {
+  if (
+    !checkoutUrl &&
+    (details.status === 'created' || (details.status === 'failed' && details.config?.online?.retries?.allowed === true))
+  ) {
     // GET /orders may omit checkout_url. This is the Checkout Pro URL for Peru.
     if (!['PE', 'PER'].includes(details.country_code) || details.currency !== 'PEN') {
-      return [new MercadoPagoError(502, 'No se pudo recuperar la URL de pago para este país.', 'invalid_response'), null];
+      return [
+        new MercadoPagoError(502, 'No se pudo recuperar la URL de pago para este país.', 'invalid_response'),
+        null,
+      ];
     }
     const url = new URL('https://www.mercadopago.com.pe/checkout/v1/redirect');
     url.searchParams.set('order_id', details.id);
     checkoutUrl = url.toString();
   }
 
-  return [null, {
-    id: details.id,
-    status: details.status,
-    status_detail: details.status_detail,
-    checkout_url: checkoutUrl,
-    config: details.config,
-  }];
+  return [
+    null,
+    {
+      id: details.id,
+      status: details.status,
+      status_detail: details.status_detail,
+      checkout_url: checkoutUrl,
+      config: details.config,
+    },
+  ];
 };

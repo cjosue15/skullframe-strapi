@@ -39,7 +39,7 @@ export const queryV2 = async <T>(
   url: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
   body?: string,
-  options?: Pick<RequestInit, 'cache'>,
+  options?: Pick<RequestInit, 'cache' | 'signal'>,
 ): Promise<[StrapiError, null] | [null, T]> => {
   try {
     const res = await fetch(`${STRAPI_HOST}/api/${url}`, {
