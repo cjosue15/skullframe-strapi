@@ -1,12 +1,15 @@
 export interface MercadoPagoOrderResponse {
   id: string;
   status: string;
-  checkout_url: string;
+  status_detail?: string | null;
+  checkout_url?: string;
+  config?: { online?: { retries?: { allowed?: boolean } } };
 }
 
 export interface MercadoPagoOrderDetails {
   id: string;
   status: string;
+  status_detail?: string | null;
   type: string;
   processing_mode: string;
   external_reference: string;
@@ -14,6 +17,7 @@ export interface MercadoPagoOrderDetails {
   currency: string;
   country_code: string;
   checkout_url?: string;
+  config?: { online?: { retries?: { allowed?: boolean } } };
 }
 
 export interface MercadoPagoOrderSearchResponse {

@@ -53,7 +53,7 @@ export const getOrderByIdempotencyKey = async (
   }
 
   // Return incomplete orders too: the checkout route resumes the same attempt.
-  // TODO: Check payment/order states once webhook reconciliation is implemented.
+  // The checkout route checks their current provider state before reuse.
   return [null, order];
 };
 

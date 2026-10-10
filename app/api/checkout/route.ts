@@ -5,18 +5,42 @@ import { createMercadoPagoOrder, recoverMercadoPagoOrder } from '@/app/lib/merca
 import { strapiErrorResponse } from '@/app/lib/strapi';
 import { updateMercadoPagoOrder } from '@/app/lib/update-order';
 import { isOrderPayload, orderErrorResponse } from '@/app/lib/utils';
+import { getOrderStateDecision } from '@/app/lib/order-state';
+import type { CheckoutResult } from '@/app/interfaces/checkout';
 
 const saveCheckoutResponse = async (order: OrderResponse, checkout: MercadoPagoOrderResponse) => {
-  if (!checkout?.id || !checkout.checkout_url?.trim()) {
+  if (!checkout?.id || typeof checkout.status !== 'string' || !checkout.status.trim()) {
+    return Response.json(
+      { error: { code: 'payment_provider_error', message: 'No pudimos obtener los datos del pago. Intenta de nuevo.' } },
+      { status: 502 },
+    );
+  }
+
+  const decision = getOrderStateDecision(order, checkout);
+  const error = await updateMercadoPagoOrder(order.documentId, checkout, decision);
+  if (error) return strapiErrorResponse(error);
+
+  if (decision.action === 'redirect' && !checkout.checkout_url?.trim()) {
     return Response.json(
       { error: { code: 'payment_provider_error', message: 'No pudimos obtener el enlace de pago. Intenta de nuevo.' } },
       { status: 502 },
     );
   }
 
-  const error = await updateMercadoPagoOrder(order.documentId, checkout.id, checkout.checkout_url);
-  if (error) return strapiErrorResponse(error);
-  return Response.json({ url: checkout.checkout_url });
+  if (decision.unrecognized) {
+    return Response.json(
+      { error: { code: 'checkout_status_unknown', message: decision.message } },
+      { status: 503, headers: { 'Retry-After': '3' } },
+    );
+  }
+
+  const result: CheckoutResult = {
+    action: decision.action,
+    orderNumber: order.orderNumber,
+    message: decision.message,
+    ...(decision.action === 'redirect' ? { url: checkout.checkout_url!.trim() } : {}),
+  };
+  return Response.json(result);
 };
 
 export async function POST(request: Request) {
@@ -46,9 +70,7 @@ export async function POST(request: Request) {
     order = createdOrder;
   }
 
-  if (order.checkoutUrl?.trim()) return Response.json({ url: order.checkoutUrl });
-
-  // An incomplete local order can already have a checkout at Mercado Pago.
+  // Even saved URLs must be checked: the payment may have completed or expired.
   const [recoveryError, recoveredCheckout] = await recoverMercadoPagoOrder(order);
   if (recoveryError) {
     console.error('Mercado Pago recovery failed', recoveryError);
@@ -64,6 +86,16 @@ export async function POST(request: Request) {
   }
   if (recoveredCheckout) return saveCheckoutResponse(order, recoveredCheckout);
 
+  // Local evidence of a previous payment is not permission to create another one.
+  if (order.providerOrderId || order.checkoutUrl || order.providerStatus
+    || order.providerStatusDetail || order.paymentStatus !== 'PENDING'
+    || order.orderStatus !== 'PENDING_PAYMENT') {
+    return Response.json(
+      { error: { code: 'checkout_recovery_error', message: 'No pudimos verificar la orden de pago existente. Conserva este intento y vuelve a consultar.' } },
+      { status: 502 },
+    );
+  }
+
   // Always use the saved reference, products and prices when retrying this key.
   const [error, checkout] = await createMercadoPagoOrder(order.idempotencyKey, order);
   if (!error) return saveCheckoutResponse(order, checkout);
@@ -78,8 +110,6 @@ export async function POST(request: Request) {
     // Another request may have finished, or Mercado Pago accepted the lost request.
     const [latestError, latestOrder] = await getOrderByIdempotencyKey(key, email, items);
     if (latestError) return orderErrorResponse(latestError);
-    if (latestOrder?.checkoutUrl?.trim()) return Response.json({ url: latestOrder.checkoutUrl });
-
     const [retryError, recovered] = await recoverMercadoPagoOrder(latestOrder ?? order);
     if (!retryError && recovered) return saveCheckoutResponse(latestOrder ?? order, recovered);
     if (retryError) console.error('Mercado Pago recovery failed', retryError);

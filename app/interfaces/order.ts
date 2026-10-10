@@ -1,5 +1,5 @@
-type OrderStatus = 'PENDING_PAYMENT' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
-type PaymentStatus = 'PENDING' | 'IN_PROCESS' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'REFUNDED' | 'CHARGED_BACK';
+export type OrderStatus = 'PENDING_PAYMENT' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+export type PaymentStatus = 'PENDING' | 'IN_PROCESS' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'PARTIALLY_REFUNDED' | 'REFUNDED' | 'CHARGED_BACK';
 
 /** All monetary fields in orders are stored as integer cents. Catalog prices remain in soles. */
 export interface CreateOrder {
@@ -36,6 +36,8 @@ export interface OrderResponse {
   currency: 'USD' | 'PEN';
   createdAt: string;
   providerOrderId?: string;
+  providerStatus?: string | null;
+  providerStatusDetail?: string | null;
   idempotencyKey: string;
   totalAmount: string;
   checkoutUrl?: string;

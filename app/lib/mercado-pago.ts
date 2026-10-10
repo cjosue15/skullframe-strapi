@@ -145,7 +145,8 @@ export const recoverMercadoPagoOrder = async (
   }
 
   let checkoutUrl = details.checkout_url?.trim();
-  if (!checkoutUrl) {
+  if (!checkoutUrl && (details.status === 'created'
+    || (details.status === 'failed' && details.config?.online?.retries?.allowed === true))) {
     // GET /orders may omit checkout_url. This is the Checkout Pro URL for Peru.
     if (!['PE', 'PER'].includes(details.country_code) || details.currency !== 'PEN') {
       return [new MercadoPagoError(502, 'No se pudo recuperar la URL de pago para este país.', 'invalid_response'), null];
@@ -155,5 +156,11 @@ export const recoverMercadoPagoOrder = async (
     checkoutUrl = url.toString();
   }
 
-  return [null, { id: details.id, status: details.status, checkout_url: checkoutUrl }];
+  return [null, {
+    id: details.id,
+    status: details.status,
+    status_detail: details.status_detail,
+    checkout_url: checkoutUrl,
+    config: details.config,
+  }];
 };
