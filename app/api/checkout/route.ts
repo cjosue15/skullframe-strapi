@@ -17,7 +17,7 @@ const saveCheckoutResponse = async (order: OrderResponse, checkout: MercadoPagoO
   }
 
   const decision = getOrderStateDecision(order, checkout);
-  const error = await updateMercadoPagoOrder(order.documentId, checkout, decision);
+  const error = await updateMercadoPagoOrder(order, checkout, decision);
   if (error) return strapiErrorResponse(error);
 
   if (decision.action === 'redirect' && !checkout.checkout_url?.trim()) {

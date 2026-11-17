@@ -35,6 +35,7 @@ export interface OrderResponse {
   email: string;
   currency: 'USD' | 'PEN';
   createdAt: string;
+  updatedAt: string;
   providerOrderId?: string;
   providerStatus?: string | null;
   providerStatusDetail?: string | null;

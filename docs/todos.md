@@ -19,11 +19,16 @@ Esta checklist acompaña al [documento conceptual del flujo de checkout](checkou
    - [x] Validar la estructura JSON mínima: objeto raíz, `type` string y `data` objeto.
    - [x] Exigir que `body.data.id` sea string y compararlo con el ID de query después de normalizar espacios exteriores y mayúsculas/minúsculas.
    - [x] Responder con cuerpo vacío y registrar solo razones controladas, sin cuerpo, secreto ni firma.
-   - [ ] Consultar la orden real en Mercado Pago antes de aplicar el evento.
-   - [ ] Comprobar `external_reference`, importe y moneda contra la orden local.
-   - [ ] Actualizar Strapi con el estado reconciliado.
+   - [x] Conectar al procesador el lookup canónico `GET /v1/orders/{id}`; la recepción guarda el evento y el procesador consulta después.
+   - [x] Conectar al procesador la comparación de `external_reference`, importe, moneda, tipo `online`, modo `manual` e ID del proveedor.
+   - [x] Marcar `DISCARDED` y registrar `order_mismatch` para una orden autenticada que no coincide con la orden local, con auditoría estructurada de campos diferentes.
+   - [x] Actualizar Strapi con el estado reconciliado mediante compare-and-swap y transacción; los estados desconocidos no alteran el estado de negocio.
    - [ ] Evitar duplicar la entrega y los correos ante eventos repetidos, desactualizados o concurrentes.
-   - [ ] Tolerar que llegue un evento antes de guardar `providerOrderId`, relacionándolo mediante `external_reference`.
+   - [x] Conectar al procesador el fallback por `external_reference` hacia `orderNumber` cuando aún no existe `providerOrderId`.
+   - [x] Crear el modelo `Webhook Event` en Strapi como base para una bandeja durable y auditoría futura.
+   - [x] Persistir el evento `order` autenticado antes de responder `200`, con estado `PENDING` e intentos `0`.
+   - [x] Procesar la bandeja con lotes secuenciales, estados, leases, compare-and-swap, reintentos y coordinación segura.
+   - [x] Registrar auditoría estructurada de discrepancias sin guardar el payload completo ni secretos.
 
 3. **Página de resultado conectada con la orden**
 
@@ -66,7 +71,9 @@ Esta checklist acompaña al [documento conceptual del flujo de checkout](checkou
 Antes de producción:
 
 - [ ] Usar el correo real de la orden en `payer.email`; el payload actual conserva un correo fijo de prueba.
+- [ ] Configurar un scheduler externo cada minuto para invocar el endpoint privado con `CRON_SECRET`; no hay cron configurado en el repositorio ni en Strapi.
 - [ ] Revisar los permisos de acceso a órdenes en Strapi.
 - [ ] Definir la recuperación de compras pendientes y de entregas fallidas mediante notificaciones o un proceso de recuperación.
+- [ ] Definir la revisión manual y recuperación de eventos `FAILED`.
 
 Las pruebas automatizadas del flujo quedan aplazadas por indicación del usuario. Este documento describe el código actual y no acredita una compra completa ejecutada contra Mercado Pago.

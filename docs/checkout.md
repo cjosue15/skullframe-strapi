@@ -1,6 +1,6 @@
 # Flujo de checkout
 
-Este documento describe el flujo implementado actualmente y los motivos de sus decisiones. El checkout crea o recupera la orden de Mercado Pago, guarda sus estados y comprueba si el intento sigue disponible para pagar. También puede informar que el pago está pendiente, confirmado o cerrado. El endpoint de recepción de notificaciones ya valida la firma y la estructura mínima, pero la consulta canónica, la persistencia y la entrega todavía están pendientes.
+Este documento describe el flujo implementado actualmente y los motivos de sus decisiones. El checkout crea o recupera la orden de Mercado Pago, guarda sus estados y comprueba si el intento sigue disponible para pagar. También puede informar que el pago está pendiente, confirmado o cerrado. El endpoint de recepción de notificaciones valida la firma y guarda una recepción mínima antes del ACK; un procesador privado consulta y reconcilia después, mientras la deduplicación global y la entrega siguen pendientes.
 
 ## Archivos principales
 
@@ -10,6 +10,8 @@ Este documento describe el flujo implementado actualmente y los motivos de sus d
 | [checkout/page.tsx](../app/(site)/checkout/page.tsx) y [checkout-page.tsx](../app/components/checkout-page.tsx) | Leer la clave de la URL, recoger el correo y mostrar el resumen. |
 | [payment-button.tsx](../app/(site)/checkout/payment-button.tsx) | Enviar la solicitud, manejar errores y redirigir al proveedor. |
 | [api/checkout/route.ts](../app/api/checkout/route.ts) | Coordinar la búsqueda, creación y recuperación de la orden. |
+| [api/checkout/validate/route.ts](../app/api/checkout/validate/route.ts) y [save-webhook-event.ts](../app/lib/save-webhook-event.ts) | Validar la recepción de Mercado Pago y guardar un evento mínimo `PENDING` antes del ACK. |
+| [process-webhook-events.ts](../app/lib/process-webhook-events.ts), [webhook-event-store.ts](../app/lib/webhook-event-store.ts) y [api/cron/process-webhook-events/route.ts](../app/api/cron/process-webhook-events/route.ts) | Reclamar, procesar y cerrar lotes de eventos con reintentos y un endpoint privado para el scheduler. |
 | [utils.ts](../app/lib/utils.ts) | Validar el payload y convertir errores de la orden en respuestas HTTP. |
 | [get-or-create-order.ts](../app/lib/get-or-create-order.ts) | Buscar un intento existente y crear la orden local con sus productos e importes. |
 | [get-items-for-order.ts](../app/lib/get-items-for-order.ts) | Consultar y comprobar los productos del catálogo por lotes. |
@@ -164,7 +166,7 @@ En el payload actual, `createMercadoPagoOrder` envía un correo fijo de prueba e
 
 ## Recepción de notificaciones
 
-`POST /api/checkout/validate` se ejecuta con `runtime = 'nodejs'` porque usa `WebhookSignatureValidator` del SDK `mercadopago` 3.6.1 y la criptografía de Node. En esta etapa solo confirma la recepción autenticada de la notificación.
+`POST /api/checkout/validate` se ejecuta con `runtime = 'nodejs'` porque usa `WebhookSignatureValidator` del SDK `mercadopago` 3.6.1 y la criptografía de Node. Para una notificación `order`, valida la recepción y llama a `saveWebhookEvent` antes de responder; no consulta todavía la orden del proveedor ni la orden local.
 
 La recepción exige los headers `x-signature` y `x-request-id`, además de exactamente un parámetro de query `data.id`. El SDK recibe ese ID normalizado con `trim().toLowerCase()` al validar la firma. Después se parsea JSON y se exige un objeto con `type` string y `data` objeto. `body.data.id` debe ser un string; sus extremos se recortan y se normaliza a minúsculas antes de compararlo con el único `data.id` de la query. Así, el mismo ID con diferencias de espacios o mayúsculas se reconoce como igual, mientras que un ID distinto se rechaza.
 
@@ -183,15 +185,58 @@ Las respuestas del endpoint tienen cuerpo vacío:
 
 | Respuesta | Situación |
 | --- | --- |
-| `200` | Recepción validada, tanto para una notificación `order` como para otro tópico autenticado. Este `200` es solo un ACK de recepción: no confirma el pago ni garantiza que el evento se haya procesado. |
+| `200` | Para `order`, la recepción validada quedó guardada como evento `PENDING`; para otro tópico autenticado, solo se confirma la recepción sin guardar una fila. Este `200` no confirma el pago ni garantiza que el evento haya sido procesado. |
 | `401` | Faltan `x-signature`, `x-request-id` o el único `data.id`, hay metadatos duplicados o la firma no es válida. |
 | `400` | JSON inválido, estructura mínima ausente o `body.data.id` diferente del `data.id` firmado en la query después de normalizar extremos y mayúsculas. |
-| `503` | Falta `WEBHOOK_MERCADOPAGO`. |
+| `503` | Falta `WEBHOOK_MERCADOPAGO` o falla la escritura autenticada del evento en Strapi, incluida una respuesta inválida o un error de red/HTTP. |
 | `500` | Error inesperado durante la recepción. |
 
-Los logs solo registran razones controladas, como `missing_secret`, el motivo de rechazo que proporciona el SDK o `unexpected_error`. No registran el cuerpo, el secreto ni la firma.
+Los logs solo registran razones controladas, como `missing_secret`, `event_save_failed`, el motivo de rechazo que proporciona el SDK o `unexpected_error`. No registran el cuerpo, el secreto ni la firma.
 
-Este endpoint todavía no consulta `GET /v1/orders/{id}` en Mercado Pago, no escribe en Strapi, no usa una cola durable y no deduplica ni entrega compras. Tampoco se activa `toleranceSeconds`, por lo que esta implementación no documenta una ventana anti-replay. El manejo de eventos repetidos y concurrentes sigue pendiente. Para no perder notificaciones, la siguiente etapa debe persistir y encolar antes del ACK, o completar la reconciliación antes de responder `200`.
+Para guardar la recepción, `saveWebhookEvent` usa el `STRAPI_HOST` y `STRAPI_TOKEN` existentes mediante un `POST` autenticado a `webhook-events`, con `cache: 'no-store'` y timeout de 10 segundos. Guarda solo el `providerOrderId` original de la query, `requestId`, `eventAction` cuando pasa la saneación `order.[a-z_]+` de hasta 128 caracteres, `processingStatus: 'PENDING'` y `attempts: 0`. `eventAction` es metadata no confiable y no decide aprobación ni descarte. No guarda estados financieros, importes, el payload completo ni secretos. Exige que Strapi devuelva un `documentId` y confirme los IDs, el estado y los intentos esperados; si no, responde `503` con la razón controlada `event_save_failed`. `queryV2` acepta `signal` además de `cache` para aplicar este timeout sin cambiar los callers anteriores.
+
+Las notificaciones `order` repetidas o una respuesta perdida pueden crear varias filas: la recepción no tiene unicidad ni deduplicación de filas. Durante el procesamiento sí existe una reserva atómica por fila mediante claim y lease; el `requestId` no es único y no evita duplicados globales por sí solo.
+
+### Consulta y vinculación del procesador
+
+Los helpers `getMercadoPagoOrderById`, `getMercadoPagoOrderMismatches` y `getOrderForMercadoPagoOrder` ya están implementados y los invoca el procesador. `validateMercadoPagoOrder` se mantiene para la recuperación del checkout. La recepción no hace estas consultas: el procesador conserva el ID original de la query para consultar Mercado Pago con `GET /v1/orders/{id}`; solo se usa la versión en minúsculas para la firma y la comparación con el body.
+
+El procesador valida la respuesta contra la orden local: `external_reference`, importe total, moneda, tipo `online`, modo `manual` y, cuando ya existe, `providerOrderId`. La comparación de importe convierte el total del proveedor a céntimos antes de compararlo con el total local.
+
+`getOrderForMercadoPagoOrder` busca primero en Strapi por `providerOrderId` y usa como fallback `orderNumber = external_reference`, con `cache: 'no-store'` y tamaño de página 2 para detectar resultados múltiples. Así encuentra la orden local si el webhook llegó antes de que el checkout guardara el ID del proveedor.
+
+El procesador marca una discrepancia como `DISCARDED` y registra `order_mismatch`, con `auditDetails` limitado a campos diferentes y sus valores esperados/recibidos; los importes se registran en céntimos. No aprueba ni entrega la compra. La recepción ya respondió `200` después de guardar el evento, por lo que este descarte se aplica fuera de HTTP y no solicita nuevos reenvíos. El procesador actualiza estados mediante persistencia compare-and-swap, pero no deduplica globalmente los eventos repetidos, no envía correos ni entrega compras. Tampoco se activa `toleranceSeconds`, por lo que esta implementación no documenta una ventana anti-replay.
+
+### Modelo preparado para eventos recibidos
+
+Strapi ya contiene la entidad `Webhook Event` en [schema.json](../../api/src/api/webhook-event/content-types/webhook-event/schema.json), con `draftAndPublish: false` y sin configuración de i18n. La ruta de recepción guarda en ella una fila mínima para cada `order` autenticada y el procesador actualiza su estado; la auditoría de discrepancias usa campos estructurados, mientras que el procesamiento de correo y entrega todavía no está conectado.
+
+| Campo | Uso definido en el modelo |
+| --- | --- |
+| `providerOrderId`, `requestId` | Strings requeridos, sin unicidad declarada. Un mismo ID puede aparecer en varios eventos. |
+| `eventAction` | Acción del evento, opcional. |
+| `processingStatus` | Enumeración requerida: `PENDING`, `PROCESSING`, `PROCESSED`, `FAILED` o `DISCARDED`; inicia en `PENDING`. |
+| `attempts` | Entero requerido, mínimo `0`, con valor inicial `0`. |
+| `nextRetryAt`, `processedAt` | Fechas opcionales para reintentos y finalización. |
+| `processingToken`, `lockedUntil` | Token privado y fecha de lease para coordinar el claim y el cierre del evento. |
+| `externalReference` | Referencia externa del proveedor, opcional. |
+| `order` | Relación opcional unidireccional `manyToOne` hacia `Order`; no modifica el schema de `Order`. |
+| `reasonCode` | Motivo estructurado, opcional. |
+| `auditDetails` | JSON para detalles de auditoría, opcional. No implica guardar el payload completo ni secretos. |
+
+El controller, router y service usan las factories CRUD estándar de Strapi. La recepción necesita `create` sobre `webhook-event`; las rutas privadas de `claim` y `settle` usan la estrategia `content-api-token` con scopes `api::webhook-event.webhook-event.claim` y `api::webhook-event.webhook-event.settle`. El flujo existente necesita `find`, `findOne` y `create` sobre `orders`; el checkout síncrono necesita además `api::order.order.reconcile`, mientras el cron usa `claim`, `settle` y las consultas locales sin llamar por HTTP a `reconcile`. `STRAPI_TOKEN` debe tener esos permisos; si es un token Custom, se configuran explícitamente, y FullAccess los incluye. No se habilita `auth:false` ni permisos para `Public` o `Authenticated`, y no se añaden tokens reales en este cambio.
+
+### Procesamiento privado y reconciliación
+
+`GET` y `POST /api/cron/process-webhook-events` son endpoints privados para un scheduler externo o una ejecución manual autenticada. Exigen `Authorization: Bearer CRON_SECRET` y comparan el header con `timingSafeEqual`; una configuración ausente responde `503` antes de reclamar eventos y una autorización inválida responde `401`, ambos con cuerpo vacío. El runtime es Node.js, la ruta es `force-dynamic` y declara `maxDuration = 120`. Con configuración válida devuelve `200` con los conteos `processed`, `discarded`, `retried` y `failed`, sin IDs.
+
+El procesador trabaja lotes secuenciales de hasta cinco eventos y deja de iniciar nuevos trabajos al alcanzar 45 segundos, aunque puede terminar el último evento iniciado; el hosting debe tolerar la duración máxima declarada de 120 segundos. Cada evento tiene un intento inicial y hasta cinco reintentos, con esperas de 1, 5, 15, 30 y 60 minutos. El intento se consume al reclamar la fila, aunque el procesamiento se caiga después; un último lease vencido se cierra como `FAILED` sin otra consulta a Mercado Pago. Los errores de proveedor, búsquedas locales, errores de procesamiento y estados desconocidos se reencolan mientras queden intentos. Un estado financiero pendiente puede dejar el evento como `PROCESSED` cuando fue reconciliado; eso no significa pago aprobado ni entrega.
+
+La reclamación usa actualización condicional de Strapi para evitar que dos procesadores tomen el mismo evento, marca `PROCESSING`, incrementa `attempts` y asigna un lease de 180 segundos. Los leases vencidos se pueden reclamar; un intento final vencido solo se cierra como `FAILED`. El cierre valida el token y el lease vigente. La actualización del estado del evento, el estado de la orden y la relación entre ambos se hace en una misma transacción; un conflicto devuelve `409` y se reintenta con `concurrent_update`.
+
+El procesador envía `orderUpdate` dentro de `POST /api/webhook-events/settle`; no llama directamente al endpoint HTTP de órdenes. El `settle` reutiliza `reconcileOrder` en la misma transacción que actualiza el evento y su relación con la orden. La reconciliación aplica compare-and-swap de `updatedAt`, `paymentStatus`, `orderStatus` y `providerOrderId`, de modo que una orden modificada entre el lookup y el settle no se sobrescribe. El checkout síncrono usa directamente `POST /api/orders/:documentId/reconcile` para su propia actualización. `getOrderStateDecision` conserva los estados de negocio desconocidos o regresivos sin asignar `COMPLETED`; el procesador no envía correos ni entrega archivos.
+
+El scheduler externo de frecuencia aproximada `* * * * *` todavía debe configurarse; no se añadió `vercel.json`, cron de Strapi ni una integración de hosting. También queda pendiente la revisión manual y recuperación de eventos `FAILED`. Las filas repetidas pueden existir: el claim coordina procesamiento por fila, pero no promete deduplicación global exactamente una vez.
 
 La referencia oficial consultada describe la validación de firma del SDK, la consulta posterior de la orden y los ACK `200/201` con reintentos: [notificaciones de Checkout Pro Orders de Mercado Pago](https://www.mercadopago.com.pe/developers/es/docs/checkout-pro-orders/notifications?scope=prod).
 
@@ -221,7 +266,7 @@ En la recuperación inicial, un error detiene el flujo con `502 checkout_recover
 
 ### Qué hace `saveCheckoutResponse`
 
-Comprueba que haya ID y estado, y utiliza `getOrderStateDecision` para interpretar la respuesta. Mercado Pago puede omitir `status_detail` en una orden `created`, tanto al crearla como al consultar su detalle: esa combinación representa una orden pendiente y permite redirigir. No inventamos un detalle; guardamos `providerStatusDetail: null` cuando falta. Para estados que requieren un detalle reconocido, su ausencia mantiene la decisión como desconocida. Guarda en Strapi `providerOrderId`, `providerStatus`, `providerStatusDetail`, la URL cuando existe y los estados de negocio reconocidos. Solo exige y devuelve URL cuando la decisión es `redirect`. Si la escritura falla, no entrega una respuesta de éxito.
+Comprueba que haya ID y estado, y utiliza `getOrderStateDecision` para interpretar la respuesta. Mercado Pago puede omitir `status_detail` en una orden `created`, tanto al crearla como al consultar su detalle: esa combinación representa una orden pendiente y permite redirigir. No inventamos un detalle; guardamos `providerStatusDetail: null` cuando falta. Para estados que requieren un detalle reconocido, su ausencia mantiene la decisión como desconocida. Guarda en Strapi `providerOrderId`, `providerStatus`, `providerStatusDetail`, la URL cuando existe y los estados de negocio reconocidos mediante `POST /api/orders/:documentId/reconcile`, con compare-and-swap del snapshot local. Solo exige y devuelve URL cuando la decisión es `redirect`. Si la escritura falla o la orden cambió concurrentemente, no entrega una respuesta de éxito.
 
 Se utiliza después de una creación correcta y después de una recuperación. Centraliza la misma operación de persistencia en ambos casos. La creación por sí sola no confirma un pago: se exige la combinación `processed` / `accredited` para marcarlo como aprobado. Esta función no entrega archivos ni envía correos.
 
@@ -257,7 +302,7 @@ Los campos `providerStatus` y `providerStatusDetail` son strings opcionales y si
 
 Un pago aprobado cambia `orderStatus` a `CONFIRMED`, nunca a `COMPLETED`: este último estado corresponde a la entrega. Los intentos pendientes mantienen `PENDING_PAYMENT`; los cerrados pasan a `CANCELLED`. Una compra ya `COMPLETED` conserva ese estado aunque después tenga un reembolso o contracargo, para preservar el historial de entrega; `paymentStatus` registra el cambio financiero.
 
-La función impide volver de un estado financiero aprobado, reembolsado o disputado a uno pendiente o rechazado usando la orden local recibida. Tampoco reabre un intento local cancelado como pendiente o disponible para pagar. Esto no sustituye el control de concurrencia de las escrituras: las consultas y actualizaciones entre ambos servicios no son una transacción atómica. El webhook deberá contemplar eventos repetidos y respuestas desactualizadas.
+La función impide volver de un estado financiero aprobado, reembolsado o disputado a uno pendiente o rechazado usando la orden local recibida. Tampoco reabre un intento local cancelado como pendiente o disponible para pagar. Esto no sustituye el control de concurrencia de las escrituras: el procesador usa compare-and-swap al reconciliar, mientras la deduplicación global de eventos repetidos sigue pendiente.
 
 El cliente recibe `{ action, orderNumber, message }`, más `url` únicamente para `redirect`. Para `pending` muestra «CONSULTAR ESTADO» y mantiene la clave. Para `paid` muestra «PAGO CONFIRMADO» y deshabilita el pago. Para `new_attempt` muestra «INICIAR NUEVO INTENTO»: la clave cambia solo cuando el comprador vuelve a pulsar ese botón. Para `blocked` muestra el motivo y cierra el intento. Si cambian el correo o los artículos, la interfaz deja de mostrar el resultado correspondiente a los datos anteriores.
 

@@ -15,7 +15,7 @@ const getOrderByField = async (
     `orders?${params.toString()}`,
     'GET',
     undefined,
-    { cache: 'no-store' },
+    { cache: 'no-store', signal: AbortSignal.timeout(10_000) },
   );
   if (error) return [error, null];
   if (!Array.isArray(result?.data) || result.data.length > 1) {

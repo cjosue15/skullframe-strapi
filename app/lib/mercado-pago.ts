@@ -6,6 +6,7 @@ import {
   MercadoPagoOrderSearchResponse,
 } from '../interfaces/mercadopago';
 import { OrderResponse } from '../interfaces/order';
+import type { OrderMismatchDetail } from '../interfaces/webhook-event';
 import { centsToSoles, solesToCents } from './money';
 
 const mercadoPagoRequest = async <T>(
@@ -112,27 +113,44 @@ export const getMercadoPagoOrderById = async (
   return [null, details];
 };
 
+/** Store only the mismatched fields, never the complete provider response. Amounts are cents. */
+export const getMercadoPagoOrderMismatches = (
+  order: OrderResponse,
+  details: MercadoPagoOrderDetails,
+): OrderMismatchDetail[] => {
+  let matchingAmount = false;
+  let receivedAmount: number | null = null;
+  try {
+    const localAmount = Number(order.totalAmount);
+    receivedAmount = solesToCents(details.total_amount);
+    matchingAmount = /^\d+$/.test(order.totalAmount)
+      && Number.isSafeInteger(localAmount)
+      && receivedAmount === localAmount;
+  } catch {
+    // Invalid amounts must not be accepted as a matching purchase.
+  }
+
+  const changes: OrderMismatchDetail[] = [];
+  const scalar = (value: unknown): string | null =>
+    typeof value === 'string' || typeof value === 'number' ? String(value).slice(0, 255) : null;
+  const compare = (field: OrderMismatchDetail['field'], expected: string, received: unknown) => {
+    if (received !== expected) changes.push({ field, expected, received: scalar(received) });
+  };
+  if (order.providerOrderId) compare('providerOrderId', order.providerOrderId, details.id);
+  compare('externalReference', order.orderNumber, details.external_reference);
+  if (!matchingAmount) changes.push({ field: 'totalAmount', expected: scalar(order.totalAmount), received: scalar(receivedAmount) });
+  compare('currency', order.currency, details.currency);
+  compare('type', 'online', details.type);
+  compare('processingMode', 'manual', details.processing_mode);
+  return changes;
+};
+
 /** Shared checks before accepting provider data for a local purchase. */
 export const validateMercadoPagoOrder = (
   order: OrderResponse,
   details: MercadoPagoOrderDetails,
 ): MercadoPagoError | null => {
-  let matchingAmount = false;
-  try {
-    const localAmount = Number(order.totalAmount);
-    matchingAmount = /^\d+$/.test(order.totalAmount)
-      && Number.isSafeInteger(localAmount)
-      && solesToCents(details.total_amount) === localAmount;
-  } catch {
-    // Invalid amounts must not be accepted as a matching purchase.
-  }
-
-  if ((order.providerOrderId && order.providerOrderId !== details.id)
-    || details.external_reference !== order.orderNumber
-    || !matchingAmount
-    || details.currency !== order.currency
-    || details.type !== 'online'
-    || details.processing_mode !== 'manual') {
+  if (getMercadoPagoOrderMismatches(order, details).length) {
     return new MercadoPagoError(502, 'Los datos de la orden de pago no coinciden.', 'invalid_response');
   }
   return null;
